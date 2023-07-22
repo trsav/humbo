@@ -1,0 +1,19 @@
+name: multi_fidelity_experimental_design_env
+channels:
+  - conda-forge
+  - omnia
+  - defaults
+dependencies:
+  - black
+  - numpy 
+  - pip
+  - pip:
+    - gpjax==0.6.7
+    - jax==0.4.9
+    - jaxlib==0.4.7
+    - matplotlib 
+    - optax 
+    - scipy 
+    - tqdm 
+
+prefix: /opt/miniconda3/envs/multi_fidelity_experimental_design_env
