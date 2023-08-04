@@ -1,15 +1,32 @@
 from multi_fidelity_experimental_design.utils import * 
+import os
 
 
-def ed_hf(f, data_path, x_bounds, z_high,it_budget,sample_initial,gp_ms=4,ms_num=4,eval_error=True,printing=False,printing_path='toy/vis/'):
+def ed(f, data_path, x_bounds, z_bounds,it_budget,sample_initial,gp_ms=4,ms_num=4,eval_error=True,printing=False,printing_path='toy/vis',type='hf'):
+    try:
+        os.mkdir(printing_path)
+    except FileExistsError:
+        pass
+    z_high = {}
+    for k,v in z_bounds.items():
+        z_high[k] = v[1]
 
-    samples = sample_bounds(x_bounds, sample_initial)
+
+    j_bounds = x_bounds | z_bounds
+    if type == 'hf':
+        s_bounds = x_bounds
+    if type == 'jf':
+        s_bounds = j_bounds
+
+    samples = sample_bounds(s_bounds, sample_initial)
+
     data = {"data": []}
     for sample in samples:
-        sample_dict = sample_to_dict(sample, x_bounds)
+        sample_dict = sample_to_dict(sample, s_bounds)
         s_eval = sample_dict.copy()
-        for zk,zv in z_high.items():
-            s_eval[zk] = zv
+        if type == 'hf':
+            for zk,zv in z_high.items():
+                s_eval[zk] = zv
         res = f(s_eval)
         run_info = {
             "id": res["id"],
@@ -32,7 +49,7 @@ def ed_hf(f, data_path, x_bounds, z_high,it_budget,sample_initial,gp_ms=4,ms_num
         inputs, outputs, cost = format_data(data)
         gp = build_gp_dict(*train_gp(inputs, outputs, gp_ms))
         if eval_error == True:
-            n_test = 75
+            n_test = 100
             x_test = sample_bounds(x_bounds,n_test)
             y_true = []
             y_test = []
@@ -45,6 +62,8 @@ def ed_hf(f, data_path, x_bounds, z_high,it_budget,sample_initial,gp_ms=4,ms_num
                 for k,v in z_high.items():
                     x_eval[k] = v
                 y_true.append(f(x_eval)['obj'])
+                if type == 'jf':
+                    x = np.concatenate((x,list(z_high.values())))
                 m,v = inference(gp, jnp.array([x]))
                 y_test.append(m)
             error = 0 
@@ -59,6 +78,8 @@ def ed_hf(f, data_path, x_bounds, z_high,it_budget,sample_initial,gp_ms=4,ms_num
             cov = []
             for x in (x_sample):
                 conditioned_sample = jnp.array([[x]])
+                if type == 'jf':
+                    conditioned_sample = jnp.array([jnp.concatenate((conditioned_sample,jnp.array([list(z_high.values())])))[:,0]])
                 mean_v, cov_v = inference(gp, conditioned_sample)
                 mean.append(float(mean_v))
                 cov.append(float(cov_v))
@@ -78,7 +99,14 @@ def ed_hf(f, data_path, x_bounds, z_high,it_budget,sample_initial,gp_ms=4,ms_num
 
             fig,ax = plt.subplots(1,1,figsize=(5,3))
             ax.plot(x,y,c='k',lw=2,label='Highest Fidelity Function',alpha=0.5)
-            ax.scatter(inputs,outputs,c='k',s=40,marker='+',label='Data')
+            if type == 'hf':
+                ax.scatter(inputs,outputs,c='k',s=20,lw=0,label='Data')
+            else:
+                for k in range(len(inputs)):
+                    fid = np.float64(inputs[k,1])
+                    alpha = 0.1 + 0.9 * fid
+                    size = 80 - 60 * fid
+                    ax.scatter(inputs[k,0],outputs[k],c='k',s=size,alpha=alpha,lw=0,label='Data' if k == 0 else None)
             # remove top and right spines
             ax.spines['top'].set_visible(False)
             ax.spines['right'].set_visible(False)
@@ -98,49 +126,42 @@ def ed_hf(f, data_path, x_bounds, z_high,it_budget,sample_initial,gp_ms=4,ms_num
         # optimising the aquisition of inputs, disregarding fidelity
         print("Optimising aquisition function")
 
-        def optimise_aquisition(gp, ms_num,f):
-            # normalise bounds
-            b_list = list(x_bounds.values())
-            # sample and normalise initial guesses
-            x_init = jnp.array(sample_bounds(x_bounds, ms_num))
-            f_best = 1e20
-            # define grad and value for acquisition (jax)
-            f = value_and_grad(f)
-            run_store = []
 
-            # iterate over multistart
-            for i in range(ms_num):
-                x = x_init[i]
-                res = minimize(
-                    f,
-                    x0=x,
-                    args=(gp),
-                    method="SLSQP",
-                    bounds=b_list,
-                    jac=True,
-                    tol=1e-8,
-                    options={"disp": True},
-                )
-                aq_val = res.fun
-                x = res.x
-                run_store.append(aq_val)
-                # if this is the best, then store solution
-                if aq_val < f_best:
-                    f_best = aq_val
-                    x_best = x
-            # return best solution found
-            return x_best, aq_val
+        b_list = list(s_bounds.values())
+        # sample and normalise initial guesses
+        s_init = jnp.array(sample_bounds(s_bounds, ms_num))
+        f_best = 1e20
+        # define grad and value for acquisition (jax)
+        f_aq = value_and_grad(exp_design_hf)
+        run_store = []
+        # iterate over multistart
+        for i in range(ms_num):
+            s = s_init[i]
+            res = minimize(
+                f_aq,
+                x0=s,
+                args=(gp),
+                method="SLSQP",
+                bounds=b_list,
+                jac=True,
+                tol=1e-8,
+                options={"disp": True},
+            )
+            aq_val = res.fun
+            x = res.x
+            run_store.append(aq_val)
+            # if this is the best, then store solution
+            if aq_val < f_best:
+                f_best = aq_val
+                x_opt = x
 
-        # this is to ensure cost-adjusted acquisition can't be -inf
-
-        x_opt,_ = optimise_aquisition(gp, ms_num, exp_design_hf)
         mu_standard_obj, var_standard_obj = inference(gp, jnp.array([x_opt]))
 
         x_opt = list(x_opt)
         x_opt = [np.float64(xi) for xi in x_opt]
         print("unnormalised res:", x_opt)
 
-        sample = sample_to_dict(x_opt, x_bounds)
+        sample = sample_to_dict(x_opt, s_bounds)
 
         run_info = {
             "id": "running",
@@ -158,8 +179,9 @@ def ed_hf(f, data_path, x_bounds, z_high,it_budget,sample_initial,gp_ms=4,ms_num
         save_json(data,data_path)
 
         s_eval = sample.copy()
-        for zk,zv in z_high.items():
-            s_eval[zk] = zv
+        if type == 'hf':
+            for zk,zv in z_high.items():
+                s_eval[zk] = zv
         res = f(s_eval)
 
         for k,v in res.items():
@@ -167,4 +189,3 @@ def ed_hf(f, data_path, x_bounds, z_high,it_budget,sample_initial,gp_ms=4,ms_num
         data["data"][-1] = run_info
         save_json(data, data_path)
  
-
