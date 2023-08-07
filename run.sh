@@ -3,7 +3,7 @@
 #PBS -j oe
 #PBS -o toy/logs.out
 #PBS -e toy/logs.err
-#PBS -lselect=1:ncpus=18:mem=256gb
+#PBS -lselect=1:ncpus=32:mem=256gb
 #PBS -lwalltime=2:00:00
 
 module load anaconda3/personal

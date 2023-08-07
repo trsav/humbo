@@ -110,7 +110,7 @@ def task(args):
     except:
         pass
 
-    plot_toy(eval, path, x_bounds, z_bounds)
+    # plot_toy(eval, path, x_bounds, z_bounds)
     problem_data = {}
     problem_data["alpha"] = alpha_v
     problem_data["cost_ratio"] = cost_ratio_v
@@ -133,15 +133,14 @@ def task(args):
         z_bounds,
         problem_data,
         path=path,
-        printing=True,
+        printing=False,
         eval_error=True,
     )
 
     return
 
-
 def main():
-    with Pool(processes=18) as pool:
+    with Pool(processes=32) as pool:
         pool.map(task, enumerate(zip(alpha, cost_ratio,types, cost_behaviours)))
 
 if __name__ == "__main__":
