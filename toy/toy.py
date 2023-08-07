@@ -70,7 +70,7 @@ z_bounds["z1"] = [0, 1]
 #     eval_error=True,
 # )
 
-n = 36
+n = 10
 alpha = np.linspace(0, 1, n)
 cost_ratio = np.geomspace(1.1, 100, n)
 # shuffle cost_ratio
@@ -89,13 +89,7 @@ types = (
 )
 alpha = np.concatenate((alpha, alpha, alpha))
 cost_ratio = np.concatenate((cost_ratio, cost_ratio, cost_ratio))
-
-cost_behaviours = ["linear" for i in range(len(alpha))] + [
-    "exp" for i in range(len(alpha))
-]
-alpha = np.concatenate((alpha, alpha))
-cost_ratio = np.concatenate((cost_ratio, cost_ratio))
-types = np.concatenate((types, types))
+cost_behaviours = ["exp" for i in range(len(alpha))]
 
 
 def task(args):
