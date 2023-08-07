@@ -106,9 +106,11 @@ alpha, cost_ratio = np.meshgrid(alpha, cost_ratio)
 alpha = alpha.flatten()
 cost_ratio = cost_ratio.flatten()
 # repeat alpha and cost_ratio for hf and jf
+types = ['hf' for i in range(len(alpha))] + ['jf' for i in range(len(alpha))]
+print(types)
 alpha = np.concatenate((alpha,alpha))
 cost_ratio = np.concatenate((cost_ratio,cost_ratio))
-types = ['hf' for i in range(len(alpha))] + ['jf' for i in range(len(alpha))]
+
 cost_behaviours = ['linear' for i in range(len(alpha))] + ['exp' for i in range(len(alpha))]
 alpha = np.concatenate((alpha,alpha))
 cost_ratio = np.concatenate((cost_ratio,cost_ratio))
@@ -119,13 +121,13 @@ def task(args):
 
     eval = Problem(alpha_v,cost_ratio_v,cost_behaviour).eval
 
-    a_string = 'a_'+str(np.round(alpha_v,3)) + '_cr_' + str(np.round(cost_ratio_v)) + '_cb_' + cost_behaviour + '/'
+    a_string = 'a_'+str(np.round(alpha_v,3)) + '_cr_' + str(np.round(cost_ratio_v)) + '_cb_' + cost_behaviour + '_sol_'+ type + '/'
     path = 'toy/res_'+a_string+'/'
     try: 
         os.mkdir(path)
     except:
         pass
-    plot_toy(eval,path)
+    #plot_toy(eval,path)
     ed(
         eval,
         path+"res.json",
@@ -135,7 +137,7 @@ def task(args):
         sample_initial=4,
         ms_num=16,
         gp_ms=4,
-        printing=True,
+        printing=False,
         printing_path = path,
         type=type
     )
@@ -143,7 +145,7 @@ def task(args):
     return
 
 def main():
-    with Pool() as pool:
+    with Pool(processes=18) as pool:
         pool.map(task, enumerate(zip(alpha, cost_ratio,types, cost_behaviours)))
 
 if __name__ == "__main__":
