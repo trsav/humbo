@@ -82,7 +82,6 @@ alpha, cost_ratio = np.meshgrid(alpha, cost_ratio)
 alpha = alpha.flatten()
 cost_ratio = cost_ratio.flatten()
 # repeat alpha and cost_ratio for hf and jf
-<<<<<<< HEAD
 types = (
     ["hf" for i in range(len(alpha))]
     + ["jf" for i in range(len(alpha))]
@@ -98,24 +97,12 @@ alpha = np.concatenate((alpha, alpha))
 cost_ratio = np.concatenate((cost_ratio, cost_ratio))
 types = np.concatenate((types, types))
 
-=======
-types = ['hf' for i in range(len(alpha))] + ['jf' for i in range(len(alpha))]
-print(types)
-alpha = np.concatenate((alpha,alpha))
-cost_ratio = np.concatenate((cost_ratio,cost_ratio))
-
-cost_behaviours = ['linear' for i in range(len(alpha))] + ['exp' for i in range(len(alpha))]
-alpha = np.concatenate((alpha,alpha))
-cost_ratio = np.concatenate((cost_ratio,cost_ratio))
-types = np.concatenate((types,types))
->>>>>>> c9e7dffe1062612a0433158c65dcadba4b7ab248
 
 def task(args):
     i, (alpha_v, cost_ratio_v, type, cost_behaviour) = args
 
     eval = Problem(alpha_v, cost_ratio_v, cost_behaviour).eval
 
-<<<<<<< HEAD
     p_string = str(uuid.uuid4())
     path = "toy/" + p_string + "/"
     try:
@@ -139,54 +126,23 @@ def task(args):
         problem_data["cost_behaviour"],
     ).eval
 
-=======
-    a_string = 'a_'+str(np.round(alpha_v,3)) + '_cr_' + str(np.round(cost_ratio_v)) + '_cb_' + cost_behaviour + '_sol_'+ type + '/'
-    path = 'toy/res_'+a_string+'/'
-    try: 
-        os.mkdir(path)
-    except:
-        pass
-    #plot_toy(eval,path)
->>>>>>> c9e7dffe1062612a0433158c65dcadba4b7ab248
     ed(
         eval,
         path + "res.json",
         x_bounds,
-<<<<<<< HEAD
         z_bounds,
         problem_data,
         path=path,
         printing=True,
         eval_error=True,
-=======
-        {'z1':[0,1]},
-        16,
-        sample_initial=4,
-        ms_num=16,
-        gp_ms=4,
-        printing=False,
-        printing_path = path,
-        type=type
->>>>>>> c9e7dffe1062612a0433158c65dcadba4b7ab248
     )
 
     return
 
 
 def main():
-<<<<<<< HEAD
-    args_generator = (
-        (i, value)
-        for i, value in enumerate(zip(alpha, cost_ratio, types, cost_behaviours))
-    )
-
-    with Pool(processes=min(16, cpu_count())) as pool:  # Limit the number of processes
-        pool.map(task, args_generator)  # pass generator to map
-
-=======
     with Pool(processes=18) as pool:
         pool.map(task, enumerate(zip(alpha, cost_ratio,types, cost_behaviours)))
->>>>>>> c9e7dffe1062612a0433158c65dcadba4b7ab248
 
 if __name__ == "__main__":
     main()

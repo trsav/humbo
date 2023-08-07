@@ -71,6 +71,7 @@ def plot_toy(eval, path, x_bounds, z_bounds):
         axs.legend(frameon=False, fontsize=8)
     fig.tight_layout()
     plt.savefig(path + "vis.png", dpi=300)
+    plt.close()
     return
 
 

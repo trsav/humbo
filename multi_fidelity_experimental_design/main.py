@@ -166,6 +166,7 @@ def ed(
             fig.tight_layout()
 
             plt.savefig(path + "/" + str(iteration + 1) + ".png", dpi=400)
+            plt.close()
         iteration += 1
 
         # optimising the aquisition of inputs, disregarding fidelity
