@@ -12,8 +12,10 @@ dependencies:
     - jax==0.4.9
     - jaxlib==0.4.7
     - matplotlib 
+    - blackjax
     - optax 
     - scipy 
     - tqdm 
+    - tensorflow
 
 prefix: /opt/miniconda3/envs/multi_fidelity_experimental_design_env
