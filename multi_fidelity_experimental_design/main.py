@@ -1,6 +1,8 @@
 from multi_fidelity_experimental_design.utils import *
 import os
 import jax.random as random
+from jaxopt import ScipyBoundedMinimize as bounded_solver
+
 
 def ed(
     f,
@@ -11,7 +13,7 @@ def ed(
     path,
     eval_error=True,
     printing=False,
-    key=random.PRNGKey(0)
+    key=random.PRNGKey(0),
 ):
     try:
         os.mkdir(path)
@@ -33,8 +35,8 @@ def ed(
     if type == "jf" or type == "mf":
         s_bounds = j_bounds
 
-    samples = sample_bounds(s_bounds, sample_initial,key,True)
-    key,subkey = random.split(key)
+    samples = sample_bounds(s_bounds, sample_initial)
+    key, subkey = random.split(key)
 
     data = {"data": []}
     for sample in samples:
@@ -47,10 +49,11 @@ def ed(
         run_info = {
             "id": res["id"],
             "inputs": sample_dict,
-            "cost": res["cost"],
-            "objective": res["objective"],
+            "cost": jnp.float64(res["cost"]).item(),
+            "objective": jnp.float64(res["objective"]).item(),
         }
         data["data"].append(run_info)
+
         save_json(data, data_path)
 
     data = read_json(data_path)
@@ -67,13 +70,10 @@ def ed(
         gp = build_gp_dict(*train_gp(inputs, outputs, gp_ms))
         c_gp = build_gp_dict(*train_gp(inputs, cost, gp_ms))
         if eval_error == True:
-            n_test = 400
-            x_test = sample_bounds(x_bounds, n_test,key,True)
-            key,subkey = random.split(key)
+            n_test = 200
+            x_test = sample_bounds(x_bounds, n_test)
             y_true = []
-            y_test = []
-            print("Evaluting model (never use this for an actual problem)")
-            for x in tqdm(x_test):
+            for x in x_test:
                 x_eval = {}
                 x_keys = list(x_bounds.keys())
                 for i in range(len(x_keys)):
@@ -81,21 +81,25 @@ def ed(
                 for k, v in z_high.items():
                     x_eval[k] = v
                 y_true.append(f(x_eval)["objective"])
+            y_true = jnp.array(y_true)
+
+            def eval_x(x):
+                x = jnp.array([x])
                 if type == "jf" or type == "mf":
-                    x = np.concatenate((x, list(z_high.values())))
-                    m, v = inference(gp, jnp.array([x]))
-                    y_test.append(m)
-            error = 0
-            for i in range(n_test):
-                error += (y_test[i] - y_true[i]) ** 2
-            error /= n_test
+                    x = jnp.concatenate((x, jnp.array([list(z_high.values())])), axis=1)
+                m, _ = inference(gp, x)
+                return m
+
+            error_map = jax.vmap(eval_x, in_axes=0)
+            y_test  = error_map(x_test)[:,0]
+
+            error = jnp.mean((y_test - y_true) ** 2)
 
         if printing == True:
             xk = list(x_bounds.keys())[0]
             x_sample = np.linspace(x_bounds[xk][0], x_bounds[xk][1], 200)
-            mean = []
-            cov = []
-            for x in x_sample:
+
+            def eval_x_plot(x):
                 conditioned_sample = jnp.array([[x]])
                 if type == "jf" or type == "mf":
                     conditioned_sample = jnp.array(
@@ -106,8 +110,13 @@ def ed(
                         ]
                     )
                 mean_v, cov_v = inference(gp, conditioned_sample)
-                mean.append(float(mean_v))
-                cov.append(float(cov_v))
+
+                return mean_v, cov_v
+
+            plot_map = jax.vmap(eval_x_plot, in_axes=0)
+            mean, cov = plot_map(x_sample)
+            mean = mean[:, 0]
+            cov = cov[:, 0]
 
             y = []
             c = []
@@ -147,7 +156,7 @@ def ed(
             ax.text(
                 0.05,
                 0.95,
-                "Current MSE: " + str(np.round(error[0], 3)),
+                "Current MSE: " + str(np.round(error, 3)),
                 transform=ax.transAxes,
             )
             ax.set_xlabel("$x$")
@@ -173,50 +182,54 @@ def ed(
         iteration += 1
 
         # optimising the aquisition of inputs, disregarding fidelity
-        print("Optimising aquisition function")
+        print("Optimising utility function...")
 
-        b_list = list(s_bounds.values())
         # sample and normalise initial guesses
-        s_init = jnp.array(sample_bounds(s_bounds, ms_num,key,True))
-        key,subkey = random.split(key)
-        f_best = 1e20
+        s_init = jnp.array(sample_bounds(s_bounds, ms_num))
+
         # define grad and value for acquisition (jax)
         if type == "hf" or type == "jf":
             f_aq = value_and_grad(exp_design_hf)
-            args = gp
+            args = (gp,)
         else:
             f_aq = value_and_grad(exp_design_mf)
             x_b = jnp.array([b for b in list(x_bounds.values())])
             z_h = jnp.array(list(z_high.values()))
             args = (gp, c_gp, z_h, x_b)
 
-        run_store = []
+        upper_bounds = jnp.array([b[1] for b in list(s_bounds.values())])
+        lower_bounds = jnp.array([b[0] for b in list(s_bounds.values())])
+        opt_bounds = (lower_bounds, upper_bounds)
 
-        for i in range(ms_num):
-            s = s_init[i]
-            res = minimize(
-                f_aq,
-                x0=s,
-                args=args,
-                method="SLSQP",
-                bounds=b_list,
-                jac=True,
-                tol=1e-8,
-                options={"disp": True},
-            )
-            aq_val = res.fun
-            x = res.x
-            run_store.append(aq_val)
-            # if this is the best, then store solution
-            if aq_val < f_best:
-                f_best = aq_val
-                x_opt = x
+        solver = bounded_solver(
+            method="l-bfgs-b",
+            jit=True,
+            fun=f_aq,
+            tol=1e-12,
+            maxiter=500,
+            value_and_grad=True,
+        )
+
+        def optimise_aq(s):
+            res = solver.run(init_params=s, bounds=opt_bounds, args=args)
+            aq_val = res.state.fun_val
+            print('Iterating utility took: ', res.state.iter_num, ' iterations')
+            x = res.params
+            return aq_val, x
+        aq_vals = []
+        xs = []
+        for s in s_init:
+            aq_val, x = optimise_aq(s)
+            aq_vals.append(aq_val)
+            xs.append(x)
+
+        x_opt = xs[jnp.argmin(jnp.array(aq_vals))]
 
         mu_standard_obj, var_standard_obj = inference(gp, jnp.array([x_opt]))
 
         x_opt = list(x_opt)
-        x_opt = [np.float64(xi) for xi in x_opt]
-        print("unnormalised res:", x_opt)
+        x_opt = [jnp.float64(xi) for xi in x_opt]
+        print("Optimal Solution: ", x_opt)
 
         sample = sample_to_dict(x_opt, s_bounds)
 
@@ -243,6 +256,10 @@ def ed(
 
         for k, v in res.items():
             run_info[k] = v
+
+        run_info["objective"] = np.float64(run_info["objective"]).item()
+        run_info["cost"] = np.float64(run_info["cost"]).item()
+
         data["data"][-1] = run_info
         save_json(data, data_path)
 
@@ -274,3 +291,4 @@ def ed(
                 ax_i.spines["right"].set_visible(False)
             fig.tight_layout()
             fig.savefig(path + "/mse.png", dpi=400)
+            plt.close()

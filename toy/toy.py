@@ -17,8 +17,8 @@ class Problem:
     def eval(self, x: dict):
         x1 = x["x1"]
         z1 = x["z1"]
-        f_low = np.sin(x1)  # low fidelity
-        f_high_1 = 2 * np.cos(x1) / (x1) + 0.5 * np.sin(3 * x1)  # high fidelity
+        f_low = jnp.sin(x1)  # low fidelity
+        f_high_1 = 2 * jnp.cos(x1) / (x1) + 0.5 * jnp.sin(3 * x1)  # high fidelity
         f_high_2 = f_low - 1
         f_high = self.alpha * f_high_1 + (1 - self.alpha) * f_high_2
         c_low = 1
@@ -32,115 +32,130 @@ class Problem:
         return {"objective": f, "cost": cost, "id": str(uuid.uuid4())}
 
 
+def run_prob(problem_data):
+    p_string = str(uuid.uuid4())
+    path = "toy/" + p_string + "/"
+    eval = Problem(
+        problem_data["alpha"],
+        problem_data["cost_ratio"],
+        problem_data["cost_behaviour"],
+    ).eval
+    try:
+        os.mkdir(path)
+    except:
+        pass
+    plot_toy(eval, path, x_bounds, z_bounds)
+    ed(
+        eval,
+        path + "res.json",
+        x_bounds,
+        z_bounds,
+        problem_data,
+        path=path,
+        printing=True,
+        eval_error=True,
+    )
+    return
+
+
 x_bounds = {}
 x_bounds["x1"] = [2, 8]
 
 z_bounds = {}
 z_bounds["z1"] = [0, 1]
 
-# p_string = str(uuid.uuid4())
-# problem_data = {}
-# problem_data["alpha"] = 0.5
-# problem_data["cost_ratio"] = 10
-# problem_data["cost_behaviour"] = "exp"
-# problem_data["type"] = "mf"
-# problem_data["sample_initial"] = 4
-# problem_data["ms_num"] = 8
-# problem_data["gp_ms"] = 4
-# problem_data["iterations"] = 15
-# eval = Problem(
-#     problem_data["alpha"], problem_data["cost_ratio"], problem_data["cost_behaviour"]
-# ).eval
+types = ["hf", "jf", "mf"]
+alphas = np.linspace(0, 1, 20)
 
-
-# path = "toy/" + p_string + "/"
-# try:
-#     os.mkdir(path)
-# except:
-#     pass
-# plot_toy(eval, path, x_bounds,z_bounds)
-# ed(
-#     eval,
-#     path + "res.json",
-#     x_bounds,
-#     z_bounds,
-#     problem_data,
-#     path=path,
-#     printing=True,
-#     eval_error=True,
-# )
-
-n = 10
-alpha = np.linspace(0, 1, n)
-# cost_ratio = np.geomspace(1.1, 100, n)
-# shuffle cost_ratio
-# np.random.shuffle(cost_ratio)
-
-
-# create meshgrid from alpha and cost_ratio
-# alpha, cost_ratio = np.meshgrid(alpha, cost_ratio)
-# alpha = alpha.flatten()
-
-# repeat alpha and cost_ratio for hf and jf
-types = (
-    ["hf" for i in range(len(alpha))]
-    + ["jf" for i in range(len(alpha))]
-    + ["mf" for i in range(len(alpha))]
-)
-alpha = np.concatenate((alpha, alpha, alpha))
-repeat = 5
-
-# cost_ratio = np.concatenate((cost_ratio, cost_ratio, cost_ratio))
-# cost_behaviours = ["exp" for i in range(len(alpha))]
-
-first_key = random.PRNGKey(0)
-keys = random.split(first_key, len(alpha))
+problem_data = {}
+problem_data["alpha"] = 0.5
+problem_data["cost_ratio"] = 10
+problem_data["cost_behaviour"] = "exp"
+problem_data["sample_initial"] = 4
+problem_data["ms_num"] = 8
+problem_data["gp_ms"] = 8
+problem_data["iterations"] = 15
 
 def task(args):
-    i, (alpha_v, type,key) = args
-
-    p_string = str(uuid.uuid4())
-    for r in range(repeat):
-        path = "toy/"+str(i+1)+'_' + p_string + "/"
-        try:
-            os.mkdir(path)
-        except:
-            pass
-
-        # plot_toy(eval, path, x_bounds, z_bounds)
-        problem_data = {}
-        problem_data["alpha"] = alpha_v
-        problem_data["cost_ratio"] = 4
-        problem_data["cost_behaviour"] = 'exp'
-        problem_data["type"] = type
-        problem_data["sample_initial"] = 4
-        problem_data["ms_num"] = 16
-        problem_data["gp_ms"] = 4
-        problem_data["iterations"] = 16
-        eval = Problem(
-            problem_data["alpha"],
-            problem_data["cost_ratio"],
-            problem_data["cost_behaviour"],
-        ).eval
-
-        ed(
-            eval,
-            path + "res.json",
-            x_bounds,
-            z_bounds,
-            problem_data,
-            path=path,
-            printing=False,
-            eval_error=True,
-            key=key
-        )
-        key,subkey = random.split(key)
-
-    return
+    alpha, type = args
+    problem_data["type"] = type
+    problem_data["alpha"] = alpha
+    run_prob(problem_data)
+    return 
 
 def main():
+    args_list = [(alpha, type_) for alpha in alphas for type_ in types]
     with Pool(processes=32) as pool:
-        pool.map(task, enumerate(zip(alpha, types,keys)))
+        pool.map(task, args_list)
 
 if __name__ == "__main__":
     main()
+
+# n = 10
+# alpha = np.linspace(0, 1, n)
+# # cost_ratio = np.geomspace(1.1, 100, n)
+# # shuffle cost_ratio
+# # np.random.shuffle(cost_ratio)
+
+
+# # create meshgrid from alpha and cost_ratio
+# # alpha, cost_ratio = np.meshgrid(alpha, cost_ratio)
+# # alpha = alpha.flatten()
+
+# # repeat alpha and cost_ratio for hf and jf
+# types = (
+#     ["hf" for i in range(len(alpha))]
+#     + ["jf" for i in range(len(alpha))]
+#     + ["mf" for i in range(len(alpha))]
+# )
+# alpha = np.concatenate((alpha, alpha, alpha))
+# repeat = 5
+
+# # cost_ratio = np.concatenate((cost_ratio, cost_ratio, cost_ratio))
+# # cost_behaviours = ["exp" for i in range(len(alpha))]
+
+# first_key = random.PRNGKey(0)
+# keys = random.split(first_key, len(alpha))
+
+# def task(args):
+#     i, (alpha_v, type,key) = args
+
+#     p_string = str(uuid.uuid4())
+#     for r in range(repeat):
+#         path = "toy/"+str(r+1)+'_' + p_string + "/"
+#         try:
+#             os.mkdir(path)
+#         except:
+#             pass
+
+#         # plot_toy(eval, path, x_bounds, z_bounds)
+#         problem_data = {}
+#         problem_data["alpha"] = alpha_v
+#         problem_data["cost_ratio"] = 4
+#         problem_data["cost_behaviour"] = 'exp'
+#         problem_data["type"] = type
+#         problem_data["sample_initial"] = 4
+#         problem_data["ms_num"] = 16
+#         problem_data["gp_ms"] = 4
+#         problem_data["iterations"] = 16
+#         eval = Problem(
+#             problem_data["alpha"],
+#             problem_data["cost_ratio"],
+#             problem_data["cost_behaviour"],
+#         ).eval
+
+#         ed(
+#             eval,
+#             path + "res.json",
+#             x_bounds,
+#             z_bounds,
+#             problem_data,
+#             path=path,
+#             printing=False,
+#             eval_error=True,
+#             key=key
+#         )
+#         key,subkey = random.split(key)
+
+#     return
+

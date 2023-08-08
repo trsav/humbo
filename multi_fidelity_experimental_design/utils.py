@@ -17,7 +17,7 @@ import json
 import time
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from scipy.optimize import minimize
+from jax.scipy.optimize import minimize
 from tensorflow_probability.substrates import jax as tfp
 
 tfd = tfp.distributions
@@ -107,8 +107,8 @@ def save_json(data, path):
     return
 
 
-def sample_bounds(bounds, n, key, random_flag):
-    sample = lhs(jnp.array(list(bounds.values())), n, key, random_flag)
+def sample_bounds(bounds, n):
+    sample = lhs(jnp.array(list(bounds.values())), n)
     return sample
 
 
@@ -130,21 +130,16 @@ def read_json(path):
     return data
 
 
-def lhs(bounds: list, p: int, key,random_flag):
+def lhs(bounds: list, p: int):
     d = len(bounds)
     sample = np.zeros((p, len(bounds)))
     for i in range(0, d):
-        if random_flag is False:
-            sample[:, i] = np.linspace(bounds[i, 0], bounds[i, 1], p)
-        else:
-            sample[:, i] = random.uniform(minval=bounds[i, 0], maxval=bounds[i, 1], shape=(p,1),key=key)[:,0]
-        if random_flag is False:
-            rnd.shuffle(sample[:, i])
+        sample[:, i] = np.linspace(bounds[i, 0], bounds[i, 1], p)
+    rnd.shuffle(sample[:, i])
     return sample
 
 
 def train_gp(inputs, outputs, ms):
-    key = jax.random.PRNGKey(0)
     # creating a set of initial GP hyper parameters (log-spaced)
     p_num = len(inputs[0, :])
 
@@ -152,13 +147,19 @@ def train_gp(inputs, outputs, ms):
     for i in range(0, p_num):
         init_params[:, i] = np.geomspace(0.1, 10, ms)
     rnd.shuffle(init_params[:, i])
-
+    init_params = jnp.array(init_params)
     # defining dataset
     D = gpx.Dataset(X=inputs, y=outputs)
     # for each intital list of hyperparameters
     best_nll = 1e30
+
+    key = jax.random.PRNGKey(0)
+    keys = jax.random.split(key, ms)
+    nlls = []
+    opt_posteriors = []
+
     for p in init_params:
-        kernel = gpx.kernels.Matern52()
+        kernel = gpx.kernels.Matern52(lengthscale=p)
         meanf = gpx.mean_functions.Constant()
         prior = gpx.Prior(mean_function=meanf, kernel=kernel)
         likelihood = gpx.Gaussian(num_datapoints=D.n, obs_noise=0.0)
@@ -173,17 +174,16 @@ def train_gp(inputs, outputs, ms):
             objective=negative_mll,
             train_data=D,
             optim=ox.adam(learning_rate=0.01),
-            num_iters=500,
+            num_iters=750,
             safe=True,
             key=key,
         )
-        key, subkey = jax.random.split(key)
 
         nll = float(history[-1])
-        # if this is the best, then store this
-        if nll < best_nll:
-            best_nll = nll
-            best_posterior = opt_posterior
+        nlls.append(nll)
+        opt_posteriors.append(opt_posterior)
+
+    best_posterior = opt_posteriors[np.argmax(nlls)]
     return best_posterior, D
 
 
@@ -207,7 +207,8 @@ def build_gp_dict(posterior, D):
     return gp_dict
 
 
-def exp_design_hf(x, gp):
+def exp_design_hf(x, args):
+    gp = args[0]
     # obtain predicted cost
     f_m, f_v = inference(gp, jnp.array([x]))
     f_v = jnp.sqrt(f_v)
@@ -228,12 +229,13 @@ def calculate_hf_entropy_sample(x, x_s, y_s, l_s, gp):
     return v_s[0]
 
 
-def exp_design_mf(x, gp, c_gp, z_high, x_bounds):
+def exp_design_mf(x, args):
+    gp, c_gp, z_high, x_bounds = args
     x = jnp.array([x])
 
     n = 500
     # sampling from x space
-    x_s_list = lhs(x_bounds, n, log=False)
+    x_s_list = lhs(x_bounds, n)
     # appending highest fidelities
     x_s_list = jnp.concatenate((x_s_list, jnp.ones((n, len(z_high))) * z_high), axis=1)
 

@@ -17,5 +17,6 @@ dependencies:
     - scipy 
     - tqdm 
     - tensorflow
+    - jaxopt
 
 prefix: /opt/miniconda3/envs/multi_fidelity_experimental_design_env
