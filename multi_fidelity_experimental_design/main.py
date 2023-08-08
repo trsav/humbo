@@ -1,6 +1,6 @@
 from multi_fidelity_experimental_design.utils import *
 import os
-
+import jax.random as random
 
 def ed(
     f,
@@ -11,6 +11,7 @@ def ed(
     path,
     eval_error=True,
     printing=False,
+    key=random.PRNGKey(0)
 ):
     try:
         os.mkdir(path)
@@ -32,7 +33,8 @@ def ed(
     if type == "jf" or type == "mf":
         s_bounds = j_bounds
 
-    samples = sample_bounds(s_bounds, sample_initial)
+    samples = sample_bounds(s_bounds, sample_initial,key,True)
+    key,subkey = random.split(key)
 
     data = {"data": []}
     for sample in samples:
@@ -65,8 +67,9 @@ def ed(
         gp = build_gp_dict(*train_gp(inputs, outputs, gp_ms))
         c_gp = build_gp_dict(*train_gp(inputs, cost, gp_ms))
         if eval_error == True:
-            n_test = 100
-            x_test = sample_bounds(x_bounds, n_test)
+            n_test = 400
+            x_test = sample_bounds(x_bounds, n_test,key,True)
+            key,subkey = random.split(key)
             y_true = []
             y_test = []
             print("Evaluting model (never use this for an actual problem)")
@@ -174,7 +177,8 @@ def ed(
 
         b_list = list(s_bounds.values())
         # sample and normalise initial guesses
-        s_init = jnp.array(sample_bounds(s_bounds, ms_num))
+        s_init = jnp.array(sample_bounds(s_bounds, ms_num,key,True))
+        key,subkey = random.split(key)
         f_best = 1e20
         # define grad and value for acquisition (jax)
         if type == "hf" or type == "jf":

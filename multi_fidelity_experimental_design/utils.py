@@ -106,8 +106,8 @@ def save_json(data, path):
     return
 
 
-def sample_bounds(bounds, n):
-    sample = lhs(jnp.array(list(bounds.values())), n, log=False)
+def sample_bounds(bounds, n, key):
+    sample = lhs(jnp.array(list(bounds.values())), n, key, random=True)
     return sample
 
 
@@ -129,15 +129,16 @@ def read_json(path):
     return data
 
 
-def lhs(bounds: list, p: int, log):
+def lhs(bounds: list, p: int, key,random):
     d = len(bounds)
     sample = np.zeros((p, len(bounds)))
     for i in range(0, d):
-        if log is False:
+        if random is False:
             sample[:, i] = np.linspace(bounds[i, 0], bounds[i, 1], p)
         else:
-            sample[:, i] = np.geomspace(bounds[i, 0], bounds[i, 1], p)
-        rnd.shuffle(sample[:, i])
+            sample[:, i] = jnp.random.uniform(xmin=bounds[i, 0], xmax=bounds[i, 1], size=(p),key=key)
+        if random is False:
+            rnd.shuffle(sample[:, i])
     return sample
 
 

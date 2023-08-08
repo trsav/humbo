@@ -72,15 +72,15 @@ z_bounds["z1"] = [0, 1]
 
 n = 10
 alpha = np.linspace(0, 1, n)
-cost_ratio = np.geomspace(1.1, 100, n)
+# cost_ratio = np.geomspace(1.1, 100, n)
 # shuffle cost_ratio
-np.random.shuffle(cost_ratio)
+# np.random.shuffle(cost_ratio)
 
 
 # create meshgrid from alpha and cost_ratio
-alpha, cost_ratio = np.meshgrid(alpha, cost_ratio)
-alpha = alpha.flatten()
-cost_ratio = cost_ratio.flatten()
+# alpha, cost_ratio = np.meshgrid(alpha, cost_ratio)
+# alpha = alpha.flatten()
+
 # repeat alpha and cost_ratio for hf and jf
 types = (
     ["hf" for i in range(len(alpha))]
@@ -88,14 +88,13 @@ types = (
     + ["mf" for i in range(len(alpha))]
 )
 alpha = np.concatenate((alpha, alpha, alpha))
-cost_ratio = np.concatenate((cost_ratio, cost_ratio, cost_ratio))
-cost_behaviours = ["exp" for i in range(len(alpha))]
+# cost_ratio = np.concatenate((cost_ratio, cost_ratio, cost_ratio))
+# cost_behaviours = ["exp" for i in range(len(alpha))]
 
+key = random.PRNGKey(0)
 
 def task(args):
-    i, (alpha_v, cost_ratio_v, type, cost_behaviour) = args
-
-    eval = Problem(alpha_v, cost_ratio_v, cost_behaviour).eval
+    i, (alpha_v, type) = args
 
     p_string = str(uuid.uuid4())
     path = "toy/" + p_string + "/"
@@ -107,8 +106,8 @@ def task(args):
     # plot_toy(eval, path, x_bounds, z_bounds)
     problem_data = {}
     problem_data["alpha"] = alpha_v
-    problem_data["cost_ratio"] = cost_ratio_v
-    problem_data["cost_behaviour"] = cost_behaviour
+    problem_data["cost_ratio"] = 4
+    problem_data["cost_behaviour"] = 'exp'
     problem_data["type"] = type
     problem_data["sample_initial"] = 4
     problem_data["ms_num"] = 16
@@ -129,13 +128,14 @@ def task(args):
         path=path,
         printing=False,
         eval_error=True,
+        key=key
     )
-
+    key,subkey = random.split(key)
     return
 
 def main():
     with Pool(processes=32) as pool:
-        pool.map(task, enumerate(zip(alpha, cost_ratio,types, cost_behaviours)))
+        pool.map(task, enumerate(zip(alpha, types)))
 
 if __name__ == "__main__":
     main()
