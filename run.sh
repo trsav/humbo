@@ -4,7 +4,7 @@
 #PBS -o toy/logs.out
 #PBS -e toy/logs.err
 #PBS -lselect=1:ncpus=32:mem=256gb
-#PBS -lwalltime=12:00:00
+#PBS -lwalltime=4:00:00
 
 module load anaconda3/personal
 

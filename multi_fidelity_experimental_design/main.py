@@ -192,7 +192,7 @@ def ed(
             f_aq = value_and_grad(exp_design_hf)
             args = (gp,)
         else:
-            f_aq = value_and_grad(exp_design_mf)
+            f_aq = exp_design_mf
             x_b = jnp.array([b for b in list(x_bounds.values())])
             z_h = jnp.array(list(z_high.values()))
             args = (gp, c_gp, z_h, x_b)
@@ -200,15 +200,24 @@ def ed(
         upper_bounds = jnp.array([b[1] for b in list(s_bounds.values())])
         lower_bounds = jnp.array([b[0] for b in list(s_bounds.values())])
         opt_bounds = (lower_bounds, upper_bounds)
-
-        solver = bounded_solver(
-            method="l-bfgs-b",
-            jit=True,
-            fun=f_aq,
-            tol=1e-12,
-            maxiter=500,
-            value_and_grad=True,
-        )
+        
+        if type != "mf":
+            solver = bounded_solver(
+                method="l-bfgs-b",
+                jit=True,
+                fun=f_aq,
+                tol=1e-12,
+                maxiter=500,
+                value_and_grad=True,
+            )
+        else:
+            solver = bounded_solver(
+                method="l-bfgs-b",
+                jit=True,
+                fun=f_aq,
+                tol=1e-12,
+                maxiter=500
+            )
 
         def optimise_aq(s):
             res = solver.run(init_params=s, bounds=opt_bounds, args=args)

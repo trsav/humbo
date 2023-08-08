@@ -52,7 +52,7 @@ def run_prob(problem_data):
         z_bounds,
         problem_data,
         path=path,
-        printing=True,
+        printing=False,
         eval_error=True,
     )
     return
@@ -64,7 +64,7 @@ x_bounds["x1"] = [2, 8]
 z_bounds = {}
 z_bounds["z1"] = [0, 1]
 
-types = ["hf", "jf", "mf"]
+types = ["mf", "jf", "hf"]
 alphas = np.linspace(0, 1, 20)
 
 problem_data = {}
