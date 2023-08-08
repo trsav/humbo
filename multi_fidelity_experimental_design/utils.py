@@ -238,7 +238,7 @@ def exp_design_mf(x, args):
     l_x = len(x)
     x = jnp.array([x])
 
-    n = 500
+    n = 2000
     # sampling from x space
     x_s_list = lhs(x_bounds, n)
     # appending highest fidelities
@@ -251,7 +251,7 @@ def exp_design_mf(x, args):
 
     # defining prior distribution of lengthscales
     gp_l = jnp.array([gp["posterior"].prior.kernel.lengthscale]).T
-    l_d = tfd.MultivariateNormalDiag(loc=gp_l, scale_diag=gp_l / 4)
+    l_d = tfd.MultivariateNormalDiag(loc=gp_l, scale_diag=gp_l / 10)
 
     key = jax.random.PRNGKey(0)
     y_key, l_key = jax.random.split(key)
@@ -265,4 +265,4 @@ def exp_design_mf(x, args):
     c_m, c_v = inference(c_gp, x)
 
     # minimize
-    return -(-approx_entropy / c_m[0])
+    return (approx_entropy) / -c_m[0]

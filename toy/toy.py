@@ -52,8 +52,7 @@ def run_prob(problem_data):
         z_bounds,
         problem_data,
         path=path,
-        printing=False,
-        eval_error=True,
+        printing=True,
     )
     return
 
@@ -64,8 +63,8 @@ x_bounds["x1"] = [2, 8]
 z_bounds = {}
 z_bounds["z1"] = [0, 1]
 
-types = ["hf", "mf", "jf"]
-alphas = np.linspace(0, 1, 20)
+types = ["jf", "hf"]
+alphas = np.linspace(0, 1, 10)
 
 problem_data = {}
 problem_data["alpha"] = 0.5
@@ -74,7 +73,7 @@ problem_data["cost_behaviour"] = "exp"
 problem_data["sample_initial"] = 4
 problem_data["ms_num"] = 8
 problem_data["gp_ms"] = 8
-problem_data["iterations"] = 15
+problem_data["err_tol"] = 1e-5
 
 def task(args):
     alpha, type = args
@@ -84,12 +83,10 @@ def task(args):
     return 
 
 
-
 def main():
     args_list = [(alpha, type_) for alpha in alphas for type_ in types]
-    task(args_list[0])
-    # with Pool(processes=1) as pool:
-    #     pool.map(task, args_list)
+    with Pool(processes=32) as pool:
+        pool.map(task, args_list)
 
 if __name__ == "__main__":
     main()

@@ -24,7 +24,7 @@ def ed(
         z_high[k] = v[1]
 
     type = problem_data["type"]
-    it_budget = problem_data["iterations"]
+    err_tol = problem_data["err_tol"]
     sample_initial = problem_data["sample_initial"]
     gp_ms = problem_data["gp_ms"]
     ms_num = problem_data["ms_num"]
@@ -39,6 +39,7 @@ def ed(
     key, subkey = random.split(key)
 
     data = {"data": []}
+
     for sample in samples:
         sample_dict = sample_to_dict(list(sample), s_bounds)
         s_eval = sample_dict.copy()
@@ -63,37 +64,38 @@ def ed(
 
     iteration = len(data["data"]) - 1
 
-    while iteration < it_budget:
+    error = 1e10
+    while error > err_tol:
         start_time = time.time()
         data = read_json(data_path)
         inputs, outputs, cost = format_data(data)
         gp = build_gp_dict(*train_gp(inputs, outputs, gp_ms))
         c_gp = build_gp_dict(*train_gp(inputs, cost, gp_ms))
-        if eval_error == True:
-            n_test = 200
-            x_test = sample_bounds(x_bounds, n_test)
-            y_true = []
-            for x in x_test:
-                x_eval = {}
-                x_keys = list(x_bounds.keys())
-                for i in range(len(x_keys)):
-                    x_eval[x_keys[i]] = x[i]
-                for k, v in z_high.items():
-                    x_eval[k] = v
-                y_true.append(f(x_eval)["objective"])
-            y_true = jnp.array(y_true)
 
-            def eval_x(x):
-                x = jnp.array([x])
-                if type == "jf" or type == "mf":
-                    x = jnp.concatenate((x, jnp.array([list(z_high.values())])), axis=1)
-                m, _ = inference(gp, x)
-                return m
+        n_test = 200
+        x_test = sample_bounds(x_bounds, n_test)
+        y_true = []
+        for x in x_test:
+            x_eval = {}
+            x_keys = list(x_bounds.keys())
+            for i in range(len(x_keys)):
+                x_eval[x_keys[i]] = x[i]
+            for k, v in z_high.items():
+                x_eval[k] = v
+            y_true.append(f(x_eval)["objective"])
+        y_true = jnp.array(y_true)
 
-            error_map = jax.vmap(eval_x, in_axes=0)
-            y_test  = error_map(x_test)[:,0]
+        def eval_x(x):
+            x = jnp.array([x])
+            if type == "jf" or type == "mf":
+                x = jnp.concatenate((x, jnp.array([list(z_high.values())])), axis=1)
+            m, _ = inference(gp, x)
+            return m
 
-            error = jnp.mean((y_test - y_true) ** 2)
+        error_map = jax.vmap(eval_x, in_axes=0)
+        y_test  = error_map(x_test)[:,0]
+
+        error = jnp.mean((y_test - y_true) ** 2)
 
         if printing == True:
             xk = list(x_bounds.keys())[0]
@@ -272,7 +274,7 @@ def ed(
         data["data"][-1] = run_info
         save_json(data, data_path)
 
-        if printing == True and eval_error == True:
+        if printing == True:
             MSE = [
                 data["data"][i + sample_initial]["MSE"]
                 for i in range(len(data["data"]) - sample_initial)
