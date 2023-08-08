@@ -64,7 +64,7 @@ x_bounds["x1"] = [2, 8]
 z_bounds = {}
 z_bounds["z1"] = [0, 1]
 
-types = ["mf", "jf", "hf"]
+types = ["hf", "mf", "jf"]
 alphas = np.linspace(0, 1, 20)
 
 problem_data = {}
@@ -83,10 +83,13 @@ def task(args):
     run_prob(problem_data)
     return 
 
+
+
 def main():
     args_list = [(alpha, type_) for alpha in alphas for type_ in types]
-    with Pool(processes=32) as pool:
-        pool.map(task, args_list)
+    task(args_list[0])
+    # with Pool(processes=1) as pool:
+    #     pool.map(task, args_list)
 
 if __name__ == "__main__":
     main()

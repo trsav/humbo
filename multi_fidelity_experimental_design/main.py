@@ -40,7 +40,7 @@ def ed(
 
     data = {"data": []}
     for sample in samples:
-        sample_dict = sample_to_dict(sample, s_bounds)
+        sample_dict = sample_to_dict(list(sample), s_bounds)
         s_eval = sample_dict.copy()
         if type == "hf":
             for zk, zv in z_high.items():

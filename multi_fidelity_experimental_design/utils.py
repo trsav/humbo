@@ -132,10 +132,14 @@ def read_json(path):
 
 def lhs(bounds: list, p: int):
     d = len(bounds)
-    sample = np.zeros((p, len(bounds)))
+
+    sample = []
     for i in range(0, d):
-        sample[:, i] = np.linspace(bounds[i, 0], bounds[i, 1], p)
-    rnd.shuffle(sample[:, i])
+        s = jnp.linspace(bounds[i, 0], bounds[i, 1], p)
+        s = jax.random.shuffle(random.PRNGKey(0), s)
+        sample.append(s)
+    sample = jnp.array(sample).T
+
     return sample
 
 
@@ -231,6 +235,7 @@ def calculate_hf_entropy_sample(x, x_s, y_s, l_s, gp):
 
 def exp_design_mf(x, args):
     gp, c_gp, z_high, x_bounds = args
+    l_x = len(x)
     x = jnp.array([x])
 
     n = 500
@@ -245,16 +250,17 @@ def exp_design_mf(x, args):
     y_d = tfd.Normal(loc=m[0], scale=std[0])
 
     # defining prior distribution of lengthscales
-    gp_l = jnp.array([gp["posterior"].prior.kernel.lengthscale])
+    gp_l = jnp.array([gp["posterior"].prior.kernel.lengthscale]).T
     l_d = tfd.MultivariateNormalDiag(loc=gp_l, scale_diag=gp_l / 4)
 
     key = jax.random.PRNGKey(0)
     y_key, l_key = jax.random.split(key)
-    y_s_list = y_d.sample(n, seed=y_key).reshape(-1, 1)
-    l_s_list = l_d.sample(n, seed=l_key).reshape(-1, 1)
+    y_s_list = y_d.sample(n, seed=y_key).reshape(n, 1)
+    l_s_list = l_d.sample(n, seed=l_key).reshape(n,l_x)
 
     batched_iteration = vmap(calculate_hf_entropy_sample, in_axes=(None, 0, 0, 0, None))
-    approx_entropy = jnp.sum(batched_iteration(x, x_s_list, y_s_list, l_s_list, gp))
+    approx_entropy = batched_iteration(x, x_s_list, y_s_list, l_s_list, gp)
+    approx_entropy = jnp.mean(approx_entropy)
 
     c_m, c_v = inference(c_gp, x)
 
