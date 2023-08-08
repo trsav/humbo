@@ -3,6 +3,7 @@ import blackjax
 from jax import numpy as jnp
 from jax import jit, value_and_grad, vmap
 import matplotlib
+import jax.random as random
 
 config.update("jax_enable_x64", True)
 import jax.numpy as jnp
@@ -106,8 +107,8 @@ def save_json(data, path):
     return
 
 
-def sample_bounds(bounds, n, key):
-    sample = lhs(jnp.array(list(bounds.values())), n, key, random=True)
+def sample_bounds(bounds, n, key, random_flag):
+    sample = lhs(jnp.array(list(bounds.values())), n, key, random_flag)
     return sample
 
 
@@ -129,15 +130,15 @@ def read_json(path):
     return data
 
 
-def lhs(bounds: list, p: int, key,random):
+def lhs(bounds: list, p: int, key,random_flag):
     d = len(bounds)
     sample = np.zeros((p, len(bounds)))
     for i in range(0, d):
-        if random is False:
+        if random_flag is False:
             sample[:, i] = np.linspace(bounds[i, 0], bounds[i, 1], p)
         else:
-            sample[:, i] = jnp.random.uniform(xmin=bounds[i, 0], xmax=bounds[i, 1], size=(p),key=key)
-        if random is False:
+            sample[:, i] = random.uniform(minval=bounds[i, 0], maxval=bounds[i, 1], shape=(p,1),key=key)[:,0]
+        if random_flag is False:
             rnd.shuffle(sample[:, i])
     return sample
 
@@ -145,9 +146,13 @@ def lhs(bounds: list, p: int, key,random):
 def train_gp(inputs, outputs, ms):
     key = jax.random.PRNGKey(0)
     # creating a set of initial GP hyper parameters (log-spaced)
-    init_params = lhs(
-        np.array([[0.1, 10] for i in range(len(inputs[0, :]))]), ms, log=True
-    )
+    p_num = len(inputs[0, :])
+
+    init_params = np.zeros((ms, p_num))
+    for i in range(0, p_num):
+        init_params[:, i] = np.geomspace(0.1, 10, ms)
+    rnd.shuffle(init_params[:, i])
+
     # defining dataset
     D = gpx.Dataset(X=inputs, y=outputs)
     # for each intital list of hyperparameters

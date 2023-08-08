@@ -88,54 +88,59 @@ types = (
     + ["mf" for i in range(len(alpha))]
 )
 alpha = np.concatenate((alpha, alpha, alpha))
+repeat = 5
+
 # cost_ratio = np.concatenate((cost_ratio, cost_ratio, cost_ratio))
 # cost_behaviours = ["exp" for i in range(len(alpha))]
 
-key = random.PRNGKey(0)
+first_key = random.PRNGKey(0)
+keys = random.split(first_key, len(alpha))
 
 def task(args):
-    i, (alpha_v, type) = args
+    i, (alpha_v, type,key) = args
 
     p_string = str(uuid.uuid4())
-    path = "toy/" + p_string + "/"
-    try:
-        os.mkdir(path)
-    except:
-        pass
+    for r in range(repeat):
+        path = "toy/"+str(i+1)+'_' + p_string + "/"
+        try:
+            os.mkdir(path)
+        except:
+            pass
 
-    # plot_toy(eval, path, x_bounds, z_bounds)
-    problem_data = {}
-    problem_data["alpha"] = alpha_v
-    problem_data["cost_ratio"] = 4
-    problem_data["cost_behaviour"] = 'exp'
-    problem_data["type"] = type
-    problem_data["sample_initial"] = 4
-    problem_data["ms_num"] = 16
-    problem_data["gp_ms"] = 4
-    problem_data["iterations"] = 16
-    eval = Problem(
-        problem_data["alpha"],
-        problem_data["cost_ratio"],
-        problem_data["cost_behaviour"],
-    ).eval
+        # plot_toy(eval, path, x_bounds, z_bounds)
+        problem_data = {}
+        problem_data["alpha"] = alpha_v
+        problem_data["cost_ratio"] = 4
+        problem_data["cost_behaviour"] = 'exp'
+        problem_data["type"] = type
+        problem_data["sample_initial"] = 4
+        problem_data["ms_num"] = 16
+        problem_data["gp_ms"] = 4
+        problem_data["iterations"] = 16
+        eval = Problem(
+            problem_data["alpha"],
+            problem_data["cost_ratio"],
+            problem_data["cost_behaviour"],
+        ).eval
 
-    ed(
-        eval,
-        path + "res.json",
-        x_bounds,
-        z_bounds,
-        problem_data,
-        path=path,
-        printing=False,
-        eval_error=True,
-        key=key
-    )
-    key,subkey = random.split(key)
+        ed(
+            eval,
+            path + "res.json",
+            x_bounds,
+            z_bounds,
+            problem_data,
+            path=path,
+            printing=False,
+            eval_error=True,
+            key=key
+        )
+        key,subkey = random.split(key)
+
     return
 
 def main():
     with Pool(processes=32) as pool:
-        pool.map(task, enumerate(zip(alpha, types)))
+        pool.map(task, enumerate(zip(alpha, types,keys)))
 
 if __name__ == "__main__":
     main()
