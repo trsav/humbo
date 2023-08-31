@@ -4,7 +4,7 @@ from jax import numpy as jnp
 from jax import jit, value_and_grad, vmap
 import matplotlib
 import jax.random as random
-
+from pymoo.core.problem import ElementwiseProblem, Problem
 config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 from jax.scipy.linalg import cho_factor, cho_solve
@@ -129,6 +129,16 @@ def read_json(path):
         data = json.load(f)
     return data
 
+def numpy_lhs(bounds:list,p:int):
+    d = len(bounds)
+
+    sample = []
+    for i in range(0, d):
+        s = np.linspace(bounds[i, 0], bounds[i, 1], p)
+        rnd.shuffle(s)
+        sample.append(s)
+    sample = np.array(sample).T
+    return sample
 
 def lhs(bounds: list, p: int):
     d = len(bounds)
@@ -149,7 +159,7 @@ def train_gp(inputs, outputs, ms):
 
     init_params = np.zeros((ms, p_num))
     for i in range(0, p_num):
-        init_params[:, i] = np.geomspace(0.1, 10, ms)
+        init_params[:, i] = np.geomspace(0.01, 1, ms)
     rnd.shuffle(init_params[:, i])
     init_params = jnp.array(init_params)
     # defining dataset
@@ -203,6 +213,7 @@ def inference(gp, inputs):
     return predictive_mean, predictive_std
 
 
+
 def build_gp_dict(posterior, D):
     # build a dictionary to store features to make everything cleaner
     gp_dict = {}
@@ -211,17 +222,8 @@ def build_gp_dict(posterior, D):
     return gp_dict
 
 
-def exp_design_hf(x, args):
-    gp = args[0]
-    # obtain predicted cost
-    f_m, f_v = inference(gp, jnp.array([x]))
-    f_v = jnp.sqrt(f_v)
-    val = -f_v
-    return val[0]
-
-
 @jit
-def calculate_hf_entropy_sample(x, x_s, y_s, l_s, gp):
+def calculate_entropy_sample(x, x_s, y_s, l_s, gp):
     D = gp["D"] + gpx.Dataset(X=x, y=jnp.array([y_s]))
     kernel = gpx.kernels.Matern52(lengthscale=l_s)
     meanf = gpx.mean_functions.Constant()
@@ -233,36 +235,43 @@ def calculate_hf_entropy_sample(x, x_s, y_s, l_s, gp):
     return v_s[0]
 
 
-def exp_design_mf(x, args):
-    gp, c_gp, z_high, x_bounds = args
-    l_x = len(x)
-    x = jnp.array([x])
+def gaussian_differential_entropy(K,N):
 
-    n = 2000
-    # sampling from x space
-    x_s_list = lhs(x_bounds, n)
-    # appending highest fidelities
-    x_s_list = jnp.concatenate((x_s_list, jnp.ones((n, len(z_high))) * z_high), axis=1)
+    return 0.5 * jnp.log((2*np.pi*jnp.exp(1))**N * jnp.linalg.det(K))
 
-    m, v = inference(gp, x)
-    std = jnp.sqrt(v)
-    # defining prior distribution of output values
-    y_d = tfd.Normal(loc=m[0], scale=std[0])
 
-    # defining prior distribution of lengthscales
-    gp_l = jnp.array([gp["posterior"].prior.kernel.lengthscale]).T
-    l_d = tfd.MultivariateNormalDiag(loc=gp_l, scale_diag=gp_l / 10)
-
+def global_optimum_distributions(x_bounds, gp,samples):
+    d  = len(x_bounds)
+    gp_sample_size = 20 ** d
+    x_s = lhs(jnp.array(list(x_bounds.values())), gp_sample_size)
+    K = gp['posterior'].prior.kernel.gram(x_s).matrix
+    mu = gp['posterior'].prior.mean_function(x_s)[:,0]
     key = jax.random.PRNGKey(0)
-    y_key, l_key = jax.random.split(key)
-    y_s_list = y_d.sample(n, seed=y_key).reshape(n, 1)
-    l_s_list = l_d.sample(n, seed=l_key).reshape(n,l_x)
+    x_s = x_s[:,0]
+    m_s = random.multivariate_normal(key, mean=mu, cov=K,shape=(samples, 1))[:,0,:]
+    x_samples = x_s[m_s.argmax(axis=1)]
+    f_samples = m_s.max(axis=1)
+    return x_samples, f_samples
 
-    batched_iteration = vmap(calculate_hf_entropy_sample, in_axes=(None, 0, 0, 0, None))
-    approx_entropy = batched_iteration(x, x_s_list, y_s_list, l_s_list, gp)
-    approx_entropy = jnp.mean(approx_entropy)
 
-    c_m, c_v = inference(c_gp, x)
+# def aq(x, args):
+#     gp,x_opt_samples,f_opt_samples = args
+#     N = len(x)
+#     m_y, K_y = inference(gp, jnp.array([x]))
+#     H_f = gaussian_differential_entropy(jnp.array([K_y]),N)
 
-    # minimize
-    return (approx_entropy) / -c_m[0]
+#     E_H_f = 0 
+#     for i in range(len(x_opt_samples)):
+
+#         m_y, K_y = inference(gp, jnp.array([x_opt_samples[i]]))
+#         E_H_f += gaussian_differential_entropy(jnp.array([K_y]),1)
+#     E_H_f /= len(x_opt_samples)
+#     return -(H_f - E_H_f)
+
+
+def aq(x, args):
+    gp = args
+    m_y, K_y = inference(gp, jnp.array([x]))
+    return - (m_y + 8 * jnp.sqrt(K_y))[0]
+
+
