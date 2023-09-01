@@ -1,4 +1,4 @@
-name: multi_fidelity_experimental_design_env
+name: hitl-bo
 channels:
   - conda-forge
   - omnia
@@ -19,4 +19,4 @@ dependencies:
     - tensorflow
     - jaxopt
 
-prefix: /opt/miniconda3/envs/multi_fidelity_experimental_design_env
+prefix: /opt/miniconda3/envs/hitl-bo

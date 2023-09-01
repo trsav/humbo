@@ -5,6 +5,7 @@ from jax import jit, value_and_grad, vmap
 import matplotlib
 import jax.random as random
 from pymoo.core.problem import ElementwiseProblem, Problem
+
 config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 from jax.scipy.linalg import cho_factor, cho_solve
@@ -19,6 +20,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from jax.scipy.optimize import minimize
 from tensorflow_probability.substrates import jax as tfp
+
 
 tfd = tfp.distributions
 
@@ -129,7 +131,8 @@ def read_json(path):
         data = json.load(f)
     return data
 
-def numpy_lhs(bounds:list,p:int):
+
+def numpy_lhs(bounds: list, p: int):
     d = len(bounds)
 
     sample = []
@@ -139,6 +142,7 @@ def numpy_lhs(bounds:list,p:int):
         sample.append(s)
     sample = np.array(sample).T
     return sample
+
 
 def lhs(bounds: list, p: int):
     d = len(bounds)
@@ -151,6 +155,18 @@ def lhs(bounds: list, p: int):
     sample = jnp.array(sample).T
 
     return sample
+
+
+class HumanInterface:
+    def __init__(self, name, var_names):
+        self.name = name
+        self.var_names = var_names
+
+    def describe(self, x):
+        return "".join(
+            [self.var_names[i] + ": " + str(x[i]) + "\n" for i in range(len(x))]
+        )
+
 
 
 def train_gp(inputs, outputs, ms):
@@ -213,7 +229,6 @@ def inference(gp, inputs):
     return predictive_mean, predictive_std
 
 
-
 def build_gp_dict(posterior, D):
     # build a dictionary to store features to make everything cleaner
     gp_dict = {}
@@ -235,43 +250,30 @@ def calculate_entropy_sample(x, x_s, y_s, l_s, gp):
     return v_s[0]
 
 
-def gaussian_differential_entropy(K,N):
+def gaussian_differential_entropy(K, N):
 
-    return 0.5 * jnp.log((2*np.pi*jnp.exp(1))**N * jnp.linalg.det(K))
+    return 0.5 * jnp.log((2 * np.pi * jnp.exp(1)) ** N * jnp.linalg.det(K))
 
 
-def global_optimum_distributions(x_bounds, gp,samples):
-    d  = len(x_bounds)
-    gp_sample_size = 20 ** d
+def global_optimum_distributions(x_bounds, gp, samples):
+    d = len(x_bounds)
+    gp_sample_size = 20**d
     x_s = lhs(jnp.array(list(x_bounds.values())), gp_sample_size)
-    K = gp['posterior'].prior.kernel.gram(x_s).matrix
-    mu = gp['posterior'].prior.mean_function(x_s)[:,0]
+    K = gp["posterior"].prior.kernel.gram(x_s).matrix
+    mu = gp["posterior"].prior.mean_function(x_s)[:, 0]
     key = jax.random.PRNGKey(0)
-    x_s = x_s[:,0]
-    m_s = random.multivariate_normal(key, mean=mu, cov=K,shape=(samples, 1))[:,0,:]
+    x_s = x_s[:, 0]
+    m_s = random.multivariate_normal(key, mean=mu, cov=K, shape=(samples, 1))[:, 0, :]
     x_samples = x_s[m_s.argmax(axis=1)]
     f_samples = m_s.max(axis=1)
     return x_samples, f_samples
 
 
-# def aq(x, args):
-#     gp,x_opt_samples,f_opt_samples = args
-#     N = len(x)
-#     m_y, K_y = inference(gp, jnp.array([x]))
-#     H_f = gaussian_differential_entropy(jnp.array([K_y]),N)
-
-#     E_H_f = 0 
-#     for i in range(len(x_opt_samples)):
-
-#         m_y, K_y = inference(gp, jnp.array([x_opt_samples[i]]))
-#         E_H_f += gaussian_differential_entropy(jnp.array([K_y]),1)
-#     E_H_f /= len(x_opt_samples)
-#     return -(H_f - E_H_f)
-
-
 def aq(x, args):
-    gp = args
-    m_y, K_y = inference(gp, jnp.array([x]))
-    return - (m_y + 8 * jnp.sqrt(K_y))[0]
-
-
+    gp, f_best = args
+    m, K = inference(gp, jnp.array([x]))
+    sigma = jnp.sqrt(K)
+    diff = m - f_best
+    p_y = tfd.Normal(loc=m, scale=sigma)
+    Z = diff / sigma
+    return -(diff * p_y.cdf(Z) + sigma * p_y.prob(Z))[0]

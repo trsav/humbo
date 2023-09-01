@@ -7,4 +7,7 @@ paper/
 **.json 
 **.png
 **__pycache__
-function_creation
+!function_creation/create_problem.py
+!function_creation/function.py
+function_creation/function.pkl
+bo/**/
