@@ -92,7 +92,6 @@ def format_data(data):
             # append values to lists
             inputs += [list(d["inputs"].values())]
             obj += [d["objective"]]
-            cost += [d["cost"]]
 
     # reformat lists to correct shaped arrays
     inputs = jnp.array(inputs)
@@ -150,22 +149,11 @@ def lhs(bounds: list, p: int):
     sample = []
     for i in range(0, d):
         s = jnp.linspace(bounds[i, 0], bounds[i, 1], p)
-        s = jax.random.shuffle(random.PRNGKey(0), s)
+        s = jax.random.shuffle(jax.random.PRNGKey(np.random.randint(0,1000)), s)
         sample.append(s)
     sample = jnp.array(sample).T
 
     return sample
-
-
-class HumanInterface:
-    def __init__(self, name, var_names):
-        self.name = name
-        self.var_names = var_names
-
-    def describe(self, x):
-        return "".join(
-            [self.var_names[i] + ": " + str(x[i]) + "\n" for i in range(len(x))]
-        )
 
 
 
@@ -175,7 +163,7 @@ def train_gp(inputs, outputs, ms):
 
     init_params = np.zeros((ms, p_num))
     for i in range(0, p_num):
-        init_params[:, i] = np.geomspace(0.01, 1, ms)
+        init_params[:, i] = np.geomspace(0.1, 1, ms)
     rnd.shuffle(init_params[:, i])
     init_params = jnp.array(init_params)
     # defining dataset
@@ -269,11 +257,18 @@ def global_optimum_distributions(x_bounds, gp, samples):
     return x_samples, f_samples
 
 
-def aq(x, args):
+def EI(x, args):
     gp, f_best = args
     m, K = inference(gp, jnp.array([x]))
     sigma = jnp.sqrt(K)
     diff = m - f_best
     p_y = tfd.Normal(loc=m, scale=sigma)
     Z = diff / sigma
-    return -(diff * p_y.cdf(Z) + sigma * p_y.prob(Z))[0]
+    expected_improvement = sigma*(Z * p_y.cdf(Z) +p_y.prob(Z))
+    return - expected_improvement[0]
+
+def UCB(x, args):
+    gp, f_best = args
+    m, K = inference(gp, jnp.array([x]))
+    sigma = jnp.sqrt(K)
+    return -(m + 2*sigma)[0]

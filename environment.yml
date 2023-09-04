@@ -15,6 +15,7 @@ dependencies:
     - blackjax
     - optax 
     - scipy 
+    - pymoo
     - tqdm 
     - tensorflow
     - jaxopt
