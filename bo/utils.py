@@ -1,4 +1,5 @@
 from jax.config import config
+import pandas as pd 
 import blackjax
 from jax import numpy as jnp
 from jax import jit, value_and_grad, vmap
@@ -155,7 +156,28 @@ def lhs(bounds: list, p: int):
 
     return sample
 
+def plot_function(f,path):
+    x = jnp.linspace(f.bounds["x"][0], f.bounds["x"][1], 500)
+    y = f.eval_vector(x)
+    fig, ax = plt.subplots(figsize=(8, 2))
+    ax.plot(x, y, c="k", lw=1)
+    x_opt = x[jnp.argmax(y)]
+    y_opt = jnp.max(y)
 
+    ax.scatter(x_opt,y_opt, c="k",marker='+', s=50,label='Global Optimum')
+    # plotting a line from the optimum to the x-axis
+    ax.plot([x_opt,x_opt],[y_opt,jnp.min(y)], c="k", lw=1,linestyle='--',alpha=0.5)
+    ax.plot([f.bounds["x"][0],f.bounds["x"][1]],[y_opt,y_opt], c="k", lw=1,linestyle='--',alpha=0.5)
+    ax.set_xlabel("x")
+    ax.set_ylabel("f(x)")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.set_yticks([])
+    ax.set_xticks([])
+    ax.legend(frameon=False, fontsize=8)
+    fig.tight_layout()
+    plt.savefig(path)
+    return
 
 def train_gp(inputs, outputs, ms):
     # creating a set of initial GP hyper parameters (log-spaced)
@@ -271,4 +293,52 @@ def UCB(x, args):
     gp, f_best = args
     m, K = inference(gp, jnp.array([x]))
     sigma = jnp.sqrt(K)
-    return -(m + 2*sigma)[0]
+    return -(m + 3*sigma)[0]
+
+def plot_regret(problem_data):
+    df = pd.read_csv('bo/problems.csv')
+    df = df.loc[(df['sample_initial'] == problem_data['sample_initial']) & (df['gp_ms'] == problem_data['gp_ms']) & (df['alternatives'] == problem_data['alternatives']) & (df['NSGA_iters'] == problem_data['NSGA_iters']) & (df['regret_tolerance'] == problem_data['regret_tolerance']) & (df['max_iterations'] == problem_data['max_iterations']) & (df['human_behaviour'] == problem_data['human_behaviour']) & (df['acquisition_function'] == problem_data['acquisition_function'])]
+    file_names = df['file_name'].values
+    regret_list = []
+    obj_list = []
+    for file in file_names:
+        data_full = read_json('bo/' + file + '/res.json')
+        data = data_full['data']
+        f_opt = data_full['problem_data']['f_opt']
+        regret = [d['regret'] for d in data]
+        obj = [d['objective'] for d in data]
+        while len(regret) != problem_data['max_iterations']:
+            regret.append(problem_data['regret_tolerance'])
+        regret_list.append(regret)
+        obj_list.append(obj)
+    regret_list = np.array(regret_list)
+
+    fig,axs = plt.subplots(1,2,figsize=(10,4))
+    init = data_full['problem_data']['sample_initial']
+    for obj in obj_list:
+        it = len(obj)
+        cumulative_regret = [f_opt - np.sum(obj[:t]) for t in range(1,it+1)]
+        average_regret = [f_opt - (1/t) * np.sum(obj[:t]) for t in range(1,it+1)]
+        axs[1].plot(np.arange(init,len(average_regret)),average_regret[init:],c='k',lw=1)
+
+    ax = axs[0]
+    for i in range(len(regret_list)):
+        ax.plot(np.arange(init,len(regret_list[i])),regret_list[i][init:],c='k',lw=1)
+
+    fs = 16
+    axs[0].set_ylabel(r"$r_\tau$",fontsize=fs)
+    axs[0].set_xlabel(r"$\tau$",fontsize=fs)
+    axs[1].set_xlabel(r"$\tau$",fontsize=fs)
+    axs[1].set_ylabel(r"$\frac{R_\tau}{\tau}$",fontsize=fs)
+    # remove top and right spines
+    for ax in axs:
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+
+    ax.legend(frameon=False)
+    fig.tight_layout()
+    plt.savefig('bo/overall_regret.png',dpi=300)
+    return 
+
+
+

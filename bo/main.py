@@ -4,6 +4,8 @@ import jax.random as random
 from jax import vmap
 from jaxopt import ScipyBoundedMinimize as bounded_solver
 from pymoo.algorithms.moo.nsga2 import NSGA2
+from pymoo.algorithms.moo.dnsga2 import DNSGA2
+
 from pymoo.operators.crossover.sbx import SBX
 from pymoo.operators.mutation.pm import PM
 from pymoo.operators.sampling.rnd import FloatRandomSampling
@@ -58,7 +60,11 @@ def bo(
 
     iteration = len(data["data"]) - 1
 
-    while data['data'][-1]['regret'] > problem_data['regret_tolerance'] or len(data['data']) < problem_data['max_iterations']:
+    while data['data'][-1]['regret'] > problem_data['regret_tolerance'] :
+        if len(data['data']) >= problem_data['max_iterations']:
+            break
+
+        os.mkdir(path + "/" + str(iteration + 1))
         start_time = time.time()
         data = read_json(data_path)
         inputs, outputs, cost = format_data(data)
@@ -122,13 +128,14 @@ def bo(
             termination = get_termination("n_gen", problem_data["NSGA_iters"])
 
             algorithm = NSGA2(
-                pop_size=30,
+                pop_size=50,
                 n_offsprings=10,
                 sampling=FloatRandomSampling(),
                 crossover=SBX(prob=0.9, eta=15),
                 mutation=PM(eta=20),
                 eliminate_duplicates=True,
             )
+
 
             class MO_aq(Problem):
                 def __init__(self):
@@ -184,14 +191,13 @@ def bo(
 
             if problem_data['plotting'] == True:
                 fig, ax = plt.subplots(1, 1, figsize=(6, 4))
+                arg_sort = np.argsort(-F[:,0])
                 ax.scatter(
-                    -F[:, 0],
-                    -F[:, 1],
-                    s=20,
-                    edgecolors="k",
-                    facecolors="None",
-                    alpha=0.5,
-                    label="Pareto Solutions",
+                    -F[arg_sort, 0],
+                    -F[arg_sort, 1],
+                    c= 'k',
+                    marker='+',
+                    label='Pareto Solutions'
                 )
                 ax.scatter(
                     -F[best_aq_sol, 0],
@@ -215,10 +221,43 @@ def bo(
                 # legend below plot
                 ax.legend(frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2)
                 fig.tight_layout()
-                fig.savefig(path + "/" + str(iteration + 1) + "_pareto.png", dpi=600)
+                fig.savefig(path + "/" + str(iteration + 1) + "/pareto.pdf")
                 plt.close()
 
+            if problem_data['plotting'] == True:
+                fig,axs = plt.subplots(1,alternatives+1,figsize=(10,4))
+                for i in range(len(axs)-2):
+                    axs[i].get_shared_y_axes().join(axs[i], axs[i+1])
+                for i in range(len(axs)-1):
+                    m,sigma = inference(gp, jnp.array([x_best_utopia[i]]))
+                    sigma = np.sqrt(sigma)
+                    p_y = tfd.Normal(loc=m, scale=sigma)
+                    y = np.linspace(m-3*sigma,m+3*sigma,100)
+                    p_y_vals = p_y.prob(y)
+                    for j in range(len(axs)-1):
+                        axs[j].fill_betweenx(y[:,0],[0 for i in range(100)],p_y_vals[:,0],alpha=0.05,color='k')
+                    axs[i].plot(p_y_vals,y,c='k',lw=1)
+                    axs[i].fill_betweenx(y[:,0],[0 for i in range(100)],p_y_vals[:,0],alpha=0.2,color='k')
+                    axs[i].plot([0,p_y.prob(m)[0]],[m,m],c='k',lw=1,ls='--')
+                    axs[i].set_title('Choice ' + str(i+1))
+                    axs[i].set_xlabel(r"$p(f(x))$")
 
+                axs[0].set_ylabel(r"$f(x)$")
+                bar_labels = [str(i+1) for i in range(alternatives)]
+                aq_vals = [-aq(jnp.array([x_best_utopia[i]]), util_args).item() for i in range(alternatives)]
+                cols = ['k' for i in range(alternatives)]
+                axs[-1].bar(bar_labels,aq_vals,color=cols,alpha=0.5,edgecolor='k',lw=1)
+                axs[-1].set_ylabel(r"$\mathcal{U}(x)$")
+                axs[-1].set_xlabel("Choices")
+
+
+                for ax in axs:
+                    ax.spines["top"].set_visible(False)
+                    ax.spines["right"].set_visible(False)
+
+                fig.tight_layout()
+                fig.savefig(path + "/" + str(iteration + 1) + "/choices.pdf")
+                plt.close() 
             if problem_data['human_behaviour'] == 'expert':
                 f_utopia = []
                 for i in range(alternatives):
@@ -261,7 +300,7 @@ def bo(
             fig, axs = plt.subplots(2, 1, figsize=(8, 4))
             ax = axs[0]
             max_f = np.argmax(y_true)
-            ax.plot(x_test[:, 0], y_true, c="k", lw=2, label="Function", alpha=0.5)
+            ax.plot(x_test[:, 0], y_true, c="k", lw=1, label="Function", alpha=0.5)
             ax.scatter(
                 x_test[max_f],
                 y_true[max_f],
@@ -277,7 +316,7 @@ def bo(
             ax.set_xticks([])
             ax.set_xlabel("$x$")
             ax.set_ylabel("$f(x)$")
-            ax.plot(x_test[:, 0], mean, c="k", ls="--", lw=2, label="GP Posterior")
+            ax.plot(x_test[:, 0], mean, c="k", ls="--", lw=1, label="GP Posterior")
             ax.fill_between(
                 x_test[:, 0],
                 mean + 2 * cov,
@@ -298,7 +337,7 @@ def bo(
                 x_test[:, 0],
                 aq_vals_list,
                 c="k",
-                lw=2,
+                lw=1,
                 label="Acquisition Function",
                 zorder=-1,
             )
@@ -341,13 +380,15 @@ def bo(
                 s=40,
                 label='Optimum'
             )
+            u_opt = -f_aq(x_opt, util_args).item()
+            ax.plot([x_opt, x_opt], [u_opt, min(aq_vals_list)], c="k", lw=1, ls="--",label='Selected')
 
             ax.legend(
-                frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.45), ncol=4,fontsize=8
+                frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.45), ncol=5,fontsize=8
             )
             fig.tight_layout()
-            plt.savefig(path + "/" + str(iteration + 1) + ".png", dpi=400)
-            plt.savefig(path + "/latest.png", dpi=400)
+            plt.savefig(path + "/" + str(iteration + 1) + "/acquisition.pdf")
+            plt.savefig(path + "/latest.pdf")
             plt.close()
 
         iteration += 1
@@ -380,13 +421,30 @@ def bo(
         save_json(data, data_path)
 
         regret_list = [d['regret'] for d in data['data']]
+        init = problem_data['sample_initial']
         it = len(regret_list)
-        fig,ax = plt.subplots(1,1,figsize=(6,4))
-        ax.plot(np.arange(it),regret_list,c='k',lw=2)
-        ax.set_xlabel("Iteration")
-        ax.set_ylabel("Regret")
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
+        fig,axs = plt.subplots(1,2,figsize=(10,4))
+        fs = 16
+        ax = axs[0]
+        ax.plot(np.arange(it),regret_list,c='k',lw=1)
+        axs[0].set_ylabel(r"$r_\tau$",fontsize=fs)
+        axs[0].set_xlabel(r"$\tau$",fontsize=fs)
+        axs[1].set_ylabel(r"$\frac{R_\tau}{\tau}$",fontsize=fs)
+        obj = [d['objective'] for d in data['data']]
+        cumulative_regret = [t*f.f_opt - np.sum(obj[:t]) for t in range(1,it+1)]
+        average_regret = [f.f_opt - (1/t) * np.sum(obj[:t]) for t in range(1,it+1)]
+
+        ax = axs[1]
+        ax.set_xlabel(r"$\tau$",fontsize=fs)
+
+        ax.plot(np.arange(it),average_regret,c='k',lw=1)
+        ax.plot([0,it],[0,0],c='k',lw=1,ls='--',label='Reference')
+
+        ax.legend(frameon=False)
+
+        for ax in axs:
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
         fig.tight_layout()
-        fig.savefig(path + "/regret.png",dpi=600)
+        fig.savefig(path + "/regret.pdf")
         plt.close()
