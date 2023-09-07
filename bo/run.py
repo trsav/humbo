@@ -12,43 +12,55 @@ from utils import *
 import uuid
 from function_creation.create_problem import create_problem
 
-
-problem_data_path = sys.argv[1]
-
-problem_data = pd.read_csv(problem_data_path).to_dict(orient='records')[0]
-try:
-    df = pd.read_csv('bo/'+str(problem_data['behaviour'])+'_problems.csv')
-except FileNotFoundError:
-    df = pd.DataFrame({})
+def num_split(n,f):
+    return n%f,n//f
 
 f_keys = pd.read_csv('function_creation/f_keys.csv')['f_keys'].values
 problems = len(f_keys)
+human_behaviours = ['expert','idiot','trusting','random']
+try:
+    index = int(sys.argv[1])
+    f_index, behaviour_index = num_split(index,problems)
+except:
+    f_index = 0
+    behaviour_index = 0
+
+# for this problem data
+aq = 'UCB'
+problem_data = {}
+problem_data["sample_initial"] = 4
+problem_data["gp_ms"] = 8
+problem_data["alternatives"] = 4
+problem_data["NSGA_iters"] = 50
+problem_data["plotting"] = True
+problem_data['regret_tolerance'] = 0.0001
+problem_data['max_iterations'] = 50
+problem_data['lengthscale'] = 0.5
+# at a given human behaviour
+problem_data['human_behaviour'] = human_behaviours[behaviour_index]
+problem_data['acquisition_function'] = aq
+
+
 aqs = {'EI':EI,'UCB':UCB}
 
-for i in range(problems):
-    f_key = f_keys[i]
-    key = random.PRNGKey(f_key)
-    aq = problem_data['acquisition_function']
-    f = Function(create_problem(key,problem_data['lengthscale']))
-    file = str(uuid.uuid4())
-    path = "bo/"+problem_data['behaviour']+'/' + file + "/"
-    problem_data['time_created'] = str(datetime.datetime.now())
-    problem_data['file_name'] = file
-    problem_data['function_key'] = f_key
+# for a given function...
+f_key = f_keys[f_index]
+key = random.PRNGKey(f_key)
+aq = problem_data['acquisition_function']
+f = Function(create_problem(key,problem_data['lengthscale']))
+file = str(uuid.uuid4())
+path = "bo/" + file + "/"
+os.mkdir(path)
 
-    if len(df) == 0:
-        df = pd.DataFrame(problem_data,index=[0])
-    else:
-        df = pd.concat([df,pd.DataFrame(problem_data,index=[0])])
-    
-    df.to_csv('bo/'+str(problem_data['behaviour'])+'_problems.csv',index=False)
+problem_data['time_created'] = str(datetime.datetime.now())
+problem_data['file_name'] = path
+problem_data['function_key'] = str(f_key)
 
-    os.mkdir(path)
-    plot_function(f,path+"function.pdf")
+plot_function(f,path+"function.pdf")
 
-    bo(
-        f,
-        aqs[aq],
-        problem_data,
-        path=path
-    )
+bo(
+    f,
+    aqs[aq],
+    problem_data,
+    path=path
+)

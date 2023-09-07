@@ -55,7 +55,7 @@ def bo(
 
     problem_data['f_opt'] = (f.f_opt).item()
     data["problem_data"] = problem_data
-    alternatives = problem_data["alternatives"]
+    alternatives = int(problem_data["alternatives"])
     save_json(data, data_path)
 
     iteration = len(data["data"]) - 1

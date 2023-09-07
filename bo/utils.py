@@ -6,7 +6,7 @@ from jax import jit, value_and_grad, vmap
 import matplotlib
 import jax.random as random
 from pymoo.core.problem import ElementwiseProblem, Problem
-
+import os
 config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 from jax.scipy.linalg import cho_factor, cho_solve
@@ -294,51 +294,3 @@ def UCB(x, args):
     m, K = inference(gp, jnp.array([x]))
     sigma = jnp.sqrt(K)
     return -(m + 3*sigma)[0]
-
-def plot_regret(problem_data):
-    df = pd.read_csv('bo/problems.csv')
-    df = df.loc[(df['sample_initial'] == problem_data['sample_initial']) & (df['gp_ms'] == problem_data['gp_ms']) & (df['alternatives'] == problem_data['alternatives']) & (df['NSGA_iters'] == problem_data['NSGA_iters']) & (df['regret_tolerance'] == problem_data['regret_tolerance']) & (df['max_iterations'] == problem_data['max_iterations']) & (df['human_behaviour'] == problem_data['human_behaviour']) & (df['acquisition_function'] == problem_data['acquisition_function'])]
-    file_names = df['file_name'].values
-    regret_list = []
-    obj_list = []
-    for file in file_names:
-        data_full = read_json('bo/' + file + '/res.json')
-        data = data_full['data']
-        f_opt = data_full['problem_data']['f_opt']
-        regret = [d['regret'] for d in data]
-        obj = [d['objective'] for d in data]
-        while len(regret) != problem_data['max_iterations']:
-            regret.append(problem_data['regret_tolerance'])
-        regret_list.append(regret)
-        obj_list.append(obj)
-    regret_list = np.array(regret_list)
-
-    fig,axs = plt.subplots(1,2,figsize=(10,4))
-    init = data_full['problem_data']['sample_initial']
-    for obj in obj_list:
-        it = len(obj)
-        cumulative_regret = [f_opt - np.sum(obj[:t]) for t in range(1,it+1)]
-        average_regret = [f_opt - (1/t) * np.sum(obj[:t]) for t in range(1,it+1)]
-        axs[1].plot(np.arange(init,len(average_regret)),average_regret[init:],c='k',lw=1)
-
-    ax = axs[0]
-    for i in range(len(regret_list)):
-        ax.plot(np.arange(init,len(regret_list[i])),regret_list[i][init:],c='k',lw=1)
-
-    fs = 16
-    axs[0].set_ylabel(r"$r_\tau$",fontsize=fs)
-    axs[0].set_xlabel(r"$\tau$",fontsize=fs)
-    axs[1].set_xlabel(r"$\tau$",fontsize=fs)
-    axs[1].set_ylabel(r"$\frac{R_\tau}{\tau}$",fontsize=fs)
-    # remove top and right spines
-    for ax in axs:
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-
-    ax.legend(frameon=False)
-    fig.tight_layout()
-    plt.savefig('bo/overall_regret.png',dpi=300)
-    return 
-
-
-
