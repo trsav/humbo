@@ -60,9 +60,7 @@ def bo(
 
     iteration = len(data["data"]) - 1
 
-    while data['data'][-1]['regret'] > problem_data['regret_tolerance'] :
-        if len(data['data']) >= problem_data['max_iterations']:
-            break
+    while len(data['data']) < problem_data['max_iterations']:
 
         os.mkdir(path + "/" + str(iteration + 1))
         start_time = time.time()
@@ -265,15 +263,13 @@ def bo(
                     f_utopia.append(f(human_x))
                 x_opt = np.array([x_best_utopia[np.argmax(f_utopia)]])
 
-            if problem_data['human_behaviour'] == 'idiot':
+            if problem_data['human_behaviour'] == 'adversarial':
                 f_utopia = []
                 for i in range(alternatives):
                     human_x = sample_to_dict([x_best_utopia[i]], x_bounds)
                     f_utopia.append(f(human_x))
                 x_opt = np.array([x_best_utopia[np.argmin(f_utopia)]])
             
-            if problem_data['human_behaviour'] == 'random':
-                x_opt = np.array([x_best_utopia[np.random.randint(0,alternatives)]])
 
             if problem_data['human_behaviour'].__class__ == float:
                 if problem_data['human_behaviour'] < 0 or problem_data['human_behaviour'] > 1:

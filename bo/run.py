@@ -17,7 +17,7 @@ def num_split(n,f):
 
 f_keys = pd.read_csv('function_creation/f_keys.csv')['f_keys'].values
 problems = len(f_keys)
-human_behaviours = ['expert','idiot','trusting','random']
+human_behaviours = ['expert','adversarial','trusting',0.25,0.5,0.75]
 try:
     index = int(sys.argv[1])
     f_index, behaviour_index = num_split(index,problems)
@@ -32,7 +32,7 @@ problem_data["sample_initial"] = 4
 problem_data["gp_ms"] = 8
 problem_data["alternatives"] = 4
 problem_data["NSGA_iters"] = 50
-problem_data["plotting"] = True
+problem_data["plotting"] = False
 problem_data['regret_tolerance'] = 0.0001
 problem_data['max_iterations'] = 50
 problem_data['lengthscale'] = 0.5

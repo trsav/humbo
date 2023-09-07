@@ -47,7 +47,10 @@ def plot_regret(problem_data,axs,c):
         average_regret_list.append(average_regret)
     average_regret = np.mean(np.array(average_regret_list),axis=0)
     label = problem_data['human_behaviour']
-    label = label[0].upper() + label[1:]
+    if label.__class__ != float:
+        label = label[0].upper() + label[1:]
+    else:
+        label = '$p(best)=$'+str(label) 
     # label = '$\mathbb{E}[$'+label+'$]$'
     # captialise first letter 
     axs[1].plot(np.arange(init,len(average_regret)),average_regret[init:],c=c,lw=1.5,label=label)
@@ -59,8 +62,8 @@ def plot_regret(problem_data,axs,c):
 
     return 
 
-colors = ['tab:red','tab:blue','tab:green','k']
-human_behaviours = ['expert','idiot','trusting','random']
+colors = ['tab:red','tab:blue','tab:green','k','tab:orange','tab:purple','tab:brown']
+human_behaviours = ['expert','adversarial','trusting',0.25,0.5,0.75]
 fig,axs = plt.subplots(1,2,figsize=(10,4))
 
 for i in range(len(human_behaviours)):
@@ -71,7 +74,6 @@ for i in range(len(human_behaviours)):
     problem_data["alternatives"] = 4
     problem_data["NSGA_iters"] = 50
     problem_data["plotting"] = True
-    problem_data['regret_tolerance'] = 0.0001
     problem_data['max_iterations'] = 50
     problem_data['lengthscale'] = 0.5
     # at a given human behaviour
@@ -87,5 +89,6 @@ axs[1].set_ylabel(r"Average Regret, ${R_\tau}/{\tau}$",fontsize=fs)
 
 axs[0].legend(frameon=False)
 axs[1].legend(frameon=False)
+fig.suptitle(r'Regret expectation over 50 functions, $f \sim \mathcal{GP}(\mu \equiv 0, K_M (d,\nu = 0.5))$, 3 alternate choices',fontsize=int(fs))
 fig.tight_layout()
 plt.savefig('bo/overall_regret.pdf')
