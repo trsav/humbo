@@ -75,42 +75,43 @@ def plot_regret(problem_data,axs,c):
 
 colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
 human_behaviours = ['expert','adversarial','trusting',0.25,0.5,0.75]
-fig,axs = plt.subplots(1,2,figsize=(10,4))
 
-for i in range(len(human_behaviours)):
-    aq = 'UCB'
-    problem_data = {}
-    problem_data["sample_initial"] = 4
-    problem_data["gp_ms"] = 8
-    problem_data["alternatives"] = 4
-    problem_data["NSGA_iters"] = 50
-    problem_data["plotting"] = True
-    problem_data['max_iterations'] = 50
-    problem_data['lengthscale'] = 0.5
-    # at a given human behaviour
-    problem_data['human_behaviour'] = human_behaviours[i]
-    problem_data['acquisition_function'] = aq
+for aq in ['UCB','EI']
+    fig,axs = plt.subplots(1,2,figsize=(10,4))
 
-    plot_regret(problem_data,axs,colors[i])
-fs = 12
-axs[0].set_ylabel(r"Simple Regret, $r_\tau$",fontsize=fs)
-for ax in axs:
-    ax.grid(True,alpha=0.5)
-    x_start = problem_data['sample_initial']
-    max_y = ax.get_ylim()[1]
-    min_y = ax.get_ylim()[0]
-    ax.plot([x_start,x_start],[min_y,max_y],c='k',ls='--',lw=1,alpha=0.5)
-axs[0].set_xlabel(r"Iterations, $\tau$",fontsize=fs)
-axs[1].set_xlabel(r"Iterations, $\tau$",fontsize=fs)
-axs[1].set_ylabel(r"Average Regret, ${R_\tau}/{\tau}$",fontsize=fs)
+    for i in range(len(human_behaviours)):
+        aq = 'UCB'
+        problem_data = {}
+        problem_data["sample_initial"] = 4
+        problem_data["gp_ms"] = 8
+        problem_data["alternatives"] = 3
+        problem_data["NSGA_iters"] = 50
+        problem_data["plotting"] = True
+        problem_data['max_iterations'] = 75
+        problem_data['lengthscale'] = 0.5
+        # at a given human behaviour
+        problem_data['human_behaviour'] = human_behaviours[i]
+        problem_data['acquisition_function'] = aq
 
-lines, labels = axs[0].get_legend_handles_labels()
-fig.legend(lines, labels, loc='lower center', bbox_to_anchor=(0.5, 0), ncol=6,frameon=False)
+        plot_regret(problem_data,axs,colors[i])
+    fs = 12
+    axs[0].set_ylabel(r"Simple Regret, $r_\tau$",fontsize=fs)
+    for ax in axs:
+        ax.grid(True,alpha=0.5)
+        x_start = problem_data['sample_initial']
+        max_y = ax.get_ylim()[1]
+        min_y = ax.get_ylim()[0]
+        ax.plot([x_start,x_start],[min_y,max_y],c='k',ls='--',lw=1,alpha=0.5)
+    axs[0].set_xlabel(r"Iterations, $\tau$",fontsize=fs)
+    axs[1].set_xlabel(r"Iterations, $\tau$",fontsize=fs)
+    axs[1].set_ylabel(r"Average Regret, ${R_\tau}/{\tau}$",fontsize=fs)
 
+    lines, labels = axs[0].get_legend_handles_labels()
+    fig.legend(lines, labels, loc='lower center', bbox_to_anchor=(0.5, 0), ncol=6,frameon=False)
 
-l = problem_data['lengthscale']
+    l = problem_data['lengthscale']
 
-fig.suptitle(r'Regret expectation over 50 functions, $f \sim \mathcal{GP}(\mu \equiv 0, K_M (d,\nu = '+str(l)+'))$, '+str(problem_data['alternatives'])+' alternate choices',fontsize=int(fs))
-fig.tight_layout()
-fig.subplots_adjust(bottom=0.2)
-plt.savefig('bo/overall_regret.pdf')
+    fig.suptitle(r'Regret expectation over 50 functions, $f \sim \mathcal{GP}(\mu \equiv 0, K_M (d,\nu = '+str(l)+'))$, '+str(problem_data['alternatives'])+' alternate choices, $\mathcal{U}(x)=$'+str(aq),fontsize=int(fs))
+    fig.tight_layout()
+    fig.subplots_adjust(bottom=0.2)
+    plt.savefig('bo/overall_regret.pdf')

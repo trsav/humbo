@@ -33,7 +33,6 @@ problem_data["gp_ms"] = 8
 problem_data["alternatives"] = 3
 problem_data["NSGA_iters"] = 50
 problem_data["plotting"] = False
-problem_data['regret_tolerance'] = 0.0001
 problem_data['max_iterations'] = 75
 problem_data['lengthscale'] = 0.4
 # at a given human behaviour
