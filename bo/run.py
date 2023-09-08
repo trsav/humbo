@@ -20,13 +20,13 @@ problems = len(f_keys)
 human_behaviours = ['expert','adversarial','trusting',0.25,0.5,0.75]
 try:
     index = int(sys.argv[1])
+    aq = sys.argv[2]
     f_index, behaviour_index = num_split(index,problems)
 except:
     f_index = 0
     behaviour_index = 0
 
 # for this problem data
-aq = 'UCB'
 problem_data = {}
 problem_data["sample_initial"] = 4
 problem_data["gp_ms"] = 8
@@ -39,7 +39,6 @@ problem_data['lengthscale'] = 0.4
 # at a given human behaviour
 problem_data['human_behaviour'] = human_behaviours[behaviour_index]
 problem_data['acquisition_function'] = aq
-
 
 aqs = {'EI':EI,'UCB':UCB}
 
