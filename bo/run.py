@@ -11,54 +11,66 @@ from main import bo
 from utils import *
 import uuid
 from function_creation.create_problem import create_problem
+import multiprocessing
 
-def num_split(n,f):
-    return n%f,n//f
 
-f_keys = pd.read_csv('function_creation/f_keys.csv')['f_keys'].values
-problems = len(f_keys)
-human_behaviours = ['expert','adversarial','trusting',0.25,0.5,0.75]
-try:
-    index = int(sys.argv[1])
-    aq = sys.argv[2]
-    f_index, behaviour_index = num_split(index,problems)
-except:
-    f_index = 0
-    behaviour_index = 0
 
-# for this problem data
-problem_data = {}
-problem_data["sample_initial"] = 4
-problem_data["gp_ms"] = 8
-problem_data["alternatives"] = 3
-problem_data["NSGA_iters"] = 50
-problem_data["plotting"] = False
-problem_data['max_iterations'] = 75
-problem_data['lengthscale'] = 0.4
-# at a given human behaviour
-problem_data['human_behaviour'] = human_behaviours[behaviour_index]
-problem_data['acquisition_function'] = aq
 
-aqs = {'EI':EI,'UCB':UCB}
+def run_behaviour(data):
+    behaviour_index,aq,f_key = data
+    human_behaviours = ['expert','adversarial','trusting',0.25,0.5,0.75]
+    # for this problem data
+    problem_data = {}
+    problem_data["sample_initial"] = 4
+    problem_data["gp_ms"] = 8
+    problem_data["alternatives"] = 3
+    problem_data["NSGA_iters"] = 50
+    problem_data["plotting"] = True
+    problem_data['max_iterations'] = 75
+    problem_data['lengthscale'] = 0.4
+    problem_data['dim'] = 1
+    # at a given human behaviour
+    problem_data['human_behaviour'] = human_behaviours[behaviour_index]
+    problem_data['acquisition_function'] = aq
 
-# for a given function...
-f_key = f_keys[f_index]
-key = random.PRNGKey(f_key)
-aq = problem_data['acquisition_function']
-f = Function(create_problem(key,problem_data['lengthscale']))
-file = str(uuid.uuid4())
-path = "bo/" + file + "/"
-os.mkdir(path)
+    aqs = {'EI':EI,'UCB':UCB}
 
-problem_data['time_created'] = str(datetime.datetime.now())
-problem_data['file_name'] = path
-problem_data['function_key'] = str(f_key)
+    # for a given function...
+    key = random.PRNGKey(f_key)
+    f = Function(create_problem(key,problem_data['lengthscale'],problem_data['dim']))
 
-# plot_function(f,path+"function.pdf")
+    file = str(uuid.uuid4())
+    path = "bo/" + file + "/"
+    os.mkdir(path)
 
-bo(
-    f,
-    aqs[aq],
-    problem_data,
-    path=path
-)
+    problem_data['time_created'] = str(datetime.datetime.now())
+    problem_data['file_name'] = path
+    problem_data['function_key'] = str(f_key)
+
+
+    bo(
+        f,
+        aqs[aq],
+        problem_data,
+        path=path
+    )
+
+
+# evaluate for each behaviour using a pool 
+if __name__ == '__main__':
+    f_keys = pd.read_csv('function_creation/f_keys.csv')['f_keys'].values
+    problems = len(f_keys)
+
+    try:
+        f_index = int(sys.argv[1])
+        aq = sys.argv[2]
+    except:
+        f_index = 0
+        behaviour_index = 0
+        aq = 'UCB'
+
+    pool = multiprocessing.Pool(processes=6)
+    # pool.map(run_behaviour,range(6))
+    pool.map(run_behaviour,[(i,aq,f_keys[f_index]) for i in range(6)])
+    pool.close()
+

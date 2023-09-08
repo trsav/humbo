@@ -17,12 +17,12 @@ class Function:
             self.gp = pickle.load(open(self.path, "rb"))
         self.opt_posterior = self.gp["posterior"]
         self.D = self.gp["D"]
-        self.bounds = {"x": self.gp["bounds"]}
+        self.dim = self.gp["dim"]
+        self.bounds = self.gp["bounds"]
         self.f_opt = self.gp["f_opt"]
 
-    def __call__(self, theta):
-        x = theta["x"]
-        latent_dist = self.opt_posterior.predict(jnp.array([[x]]), train_data=self.D)
+    def __call__(self, x):
+        latent_dist = self.opt_posterior.predict(jnp.array([x]), train_data=self.D)
         predictive_dist = self.opt_posterior.likelihood(latent_dist)
         f = predictive_dist.mean()
         return f.item()

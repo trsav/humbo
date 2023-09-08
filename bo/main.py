@@ -31,17 +31,15 @@ def bo(
     gp_ms = problem_data["gp_ms"]
 
     x_bounds = f.bounds
-    samples = numpy_lhs(jnp.array(list(x_bounds.values())), sample_initial)
+    samples = numpy_lhs(jnp.array(x_bounds), sample_initial)
 
     data = {"data": []}
 
     for sample in samples:
-        sample_dict = sample_to_dict(list(sample), x_bounds)
-        s_eval = sample_dict.copy()
-        res = f(s_eval)
+        res = f(sample)
         run_info = {
             "id": str(uuid.uuid4()),
-            "inputs": sample_dict,
+            "inputs": list(sample),
             "objective": res
         }
         data["data"].append(run_info)
@@ -62,7 +60,7 @@ def bo(
 
     while len(data['data']) < problem_data['max_iterations']:
         
-        if problem_data['plotting'] == True:
+        if problem_data['plotting'] == True and problem_data['dim'] == 1:
             os.mkdir(path + "/" + str(iteration + 1))
             
         start_time = time.time()
@@ -72,24 +70,24 @@ def bo(
         gp = build_gp_dict(*train_gp(inputs, outputs, gp_ms))
         util_args = (gp, f_best)
 
-        n_test = 1000
-        x_test = jnp.linspace(x_bounds["x"][0], x_bounds["x"][1], n_test).reshape(-1, 1)
-        y_true = f.eval_vector(x_test[:, 0])
 
         aq = vmap(f_aq, in_axes=(0, None))
-        aq_vals_list = aq(x_test, util_args)
-
-        posterior = gp["posterior"]
-        D = gp["D"]
-        latent_dist = posterior.predict(x_test, train_data=D)
-        predictive_dist = posterior.likelihood(latent_dist)
-        mean = predictive_dist.mean()
-        cov = jnp.sqrt(predictive_dist.variance())
+        if problem_data['dim'] == 1 and problem_data['plotting'] == True:
+            n_test = 1000
+            x_test = jnp.linspace(x_bounds[0][0], x_bounds[0][1], n_test).reshape(-1, 1)
+            y_true = f.eval_vector(x_test[:, 0])
+            aq_vals_list = aq(x_test, util_args)
+            posterior = gp["posterior"]
+            D = gp["D"]
+            latent_dist = posterior.predict(x_test, train_data=D)
+            predictive_dist = posterior.likelihood(latent_dist)
+            mean = predictive_dist.mean()
+            cov = jnp.sqrt(predictive_dist.variance())
 
         # optimising the aquisition of inputs, disregarding fidelity
         print("Optimising utility function...")
-        upper_bounds_single = jnp.array([b[1] for b in list(x_bounds.values())])
-        lower_bounds_single = jnp.array([b[0] for b in list(x_bounds.values())])
+        upper_bounds_single = jnp.array([b[1] for b in x_bounds])
+        lower_bounds_single = jnp.array([b[0] for b in x_bounds])
 
         opt_bounds = (lower_bounds_single, upper_bounds_single)
         s_init = jnp.array(sample_bounds(x_bounds, 36))
@@ -122,7 +120,7 @@ def bo(
             x_opt = x_opt_aq
         else:
 
-            n_opt = int(len(x_bounds.values()) * (alternatives-1))
+            n_opt = int(len(x_bounds) * (alternatives-1))
             upper_bounds = jnp.repeat(upper_bounds_single, alternatives-1)
             lower_bounds = jnp.repeat(lower_bounds_single, alternatives-1)
             termination = get_termination("n_gen", problem_data["NSGA_iters"])
@@ -167,9 +165,7 @@ def bo(
                 problem, algorithm, termination, seed=1, save_history=True, verbose=True
             )
 
-            
-
-
+        
             F = res.F
             X = res.X
 
@@ -224,7 +220,9 @@ def bo(
                 fig.savefig(path + "/" + str(iteration + 1) + "/pareto.pdf")
                 plt.close()
 
-            if problem_data['plotting'] == True:
+            if problem_data['plotting'] == True and problem_data['dim'] == 1:
+
+
                 fig,axs = plt.subplots(1,alternatives+1,figsize=(10,4))
                 for i in range(len(axs)-2):
                     axs[i].get_shared_y_axes().join(axs[i], axs[i+1])
@@ -261,15 +259,13 @@ def bo(
             if problem_data['human_behaviour'] == 'expert':
                 f_utopia = []
                 for i in range(alternatives):
-                    human_x = sample_to_dict([x_best_utopia[i]], x_bounds)
-                    f_utopia.append(f(human_x))
+                    f_utopia.append(f(x_best_utopia[i]))
                 x_opt = np.array([x_best_utopia[np.argmax(f_utopia)]])
 
             if problem_data['human_behaviour'] == 'adversarial':
                 f_utopia = []
                 for i in range(alternatives):
-                    human_x = sample_to_dict([x_best_utopia[i]], x_bounds)
-                    f_utopia.append(f(human_x))
+                    f_utopia.append(f(x_best_utopia[i]))
                 x_opt = np.array([x_best_utopia[np.argmin(f_utopia)]])
             
 
@@ -279,8 +275,7 @@ def bo(
                 
                 f_utopia = []
                 for i in range(alternatives):
-                    human_x = sample_to_dict([x_best_utopia[i]], x_bounds)
-                    f_utopia.append(f(human_x))
+                    f_utopia.append(f(x_best_utopia[i]))
 
                 best_index = np.argmax(f_utopia)
                 probability_of_correct = np.random.uniform()
@@ -290,11 +285,7 @@ def bo(
                     x_best_utopia = np.delete(x_best_utopia,best_index,axis=0)
                     x_opt = np.array([x_best_utopia[np.random.randint(0,alternatives-1)]])
 
-
-
-        # x_opt = xs[jnp.argmin(jnp.array(aq_vals))]
-
-        if problem_data['plotting'] == True:
+        if problem_data['plotting'] == True and problem_data['dim'] == 1:
             fig, axs = plt.subplots(2, 1, figsize=(8, 4))
             ax = axs[0]
             max_f = np.argmax(y_true)
@@ -394,14 +385,12 @@ def bo(
         mu_opt,var_opt = inference(gp, jnp.array([x_opt]))
 
         x_opt = list(x_opt)
-        x_opt = [jnp.float64(xi) for xi in x_opt]
         print("Optimal Solution: ", x_opt)
 
-        sample = sample_to_dict(x_opt, x_bounds)
 
         run_info = {
             "id": "running",
-            "inputs": sample,
+            "inputs": list(x_opt),
             "pred_mu": np.float64(mu_opt),
             "pred_sigma": np.float64(np.sqrt(var_opt)),
         }
@@ -409,8 +398,7 @@ def bo(
         data["data"].append(run_info)
         save_json(data, data_path)
 
-        s_eval = sample.copy()
-        f_eval =  f(s_eval)
+        f_eval =  f(x_opt)
         run_info["objective"] = f_eval
         run_info["id"] = str(uuid.uuid4())
         run_info["regret"] = (f.f_opt - max(f_eval,jnp.max(outputs))).item()

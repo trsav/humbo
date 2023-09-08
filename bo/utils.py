@@ -91,7 +91,7 @@ def format_data(data):
         # check the solution isn't still running
         if d["id"] != "running":
             # append values to lists
-            inputs += [list(d["inputs"].values())]
+            inputs += [list(d["inputs"])]
             obj += [d["objective"]]
 
     # reformat lists to correct shaped arrays
@@ -110,7 +110,7 @@ def save_json(data, path):
 
 
 def sample_bounds(bounds, n):
-    sample = lhs(jnp.array(list(bounds.values())), n)
+    sample = lhs(jnp.array(bounds), n)
     return sample
 
 
@@ -278,7 +278,7 @@ def global_optimum_distributions(x_bounds, gp, samples):
     f_samples = m_s.max(axis=1)
     return x_samples, f_samples
 
-
+@jit
 def EI(x, args):
     gp, f_best = args
     m, K = inference(gp, jnp.array([x]))
@@ -289,6 +289,7 @@ def EI(x, args):
     expected_improvement = sigma*(Z * p_y.cdf(Z) +p_y.prob(Z))
     return - expected_improvement[0]
 
+@jit
 def UCB(x, args):
     gp, f_best = args
     m, K = inference(gp, jnp.array([x]))
