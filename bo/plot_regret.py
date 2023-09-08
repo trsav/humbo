@@ -1,7 +1,10 @@
 from utils import * 
 from tqdm import tqdm
 from matplotlib import rc
-rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
+plt.rcParams.update({
+    "text.usetex": True,
+    "font.family": "Helvetica"
+})
 
 def plot_regret(problem_data,axs,c):
     directory = 'bo'
@@ -18,51 +21,59 @@ def plot_regret(problem_data,axs,c):
     # create dataframe from list of dictionaries 
     df = pd.DataFrame(problem_data_list)
 
-    df = df.loc[(df['sample_initial'] == problem_data['sample_initial']) & (df['gp_ms'] == problem_data['gp_ms']) & (df['alternatives'] == problem_data['alternatives']) & (df['NSGA_iters'] == problem_data['NSGA_iters']) & (df['regret_tolerance'] == problem_data['regret_tolerance']) & (df['max_iterations'] == problem_data['max_iterations']) & (df['human_behaviour'] == problem_data['human_behaviour']) & (df['acquisition_function'] == problem_data['acquisition_function'])]
+    df = df.loc[(df['sample_initial'] == problem_data['sample_initial']) & (df['gp_ms'] == problem_data['gp_ms']) & (df['alternatives'] == problem_data['alternatives']) & (df['NSGA_iters'] == problem_data['NSGA_iters']) & (df['max_iterations'] == problem_data['max_iterations']) & (df['human_behaviour'] == problem_data['human_behaviour']) & (df['acquisition_function'] == problem_data['acquisition_function'])]
     file_names = df['file_name'].values
     regret_list = []
     obj_list = []
+    f_opt_list = []
     for file in file_names:
         data_full = read_json(file + '/res.json')
         data = data_full['data']
         f_opt = data_full['problem_data']['f_opt']
-        regret = [d['regret'] for d in data]
         obj = [d['objective'] for d in data]
-        while len(regret) != problem_data['max_iterations']:
-            regret.append(problem_data['regret_tolerance'])
-        regret_list.append(regret)
+        f_opt_list.append(f_opt)
         obj_list.append(obj)
-    regret_list = np.array(regret_list)
 
     init = data_full['problem_data']['sample_initial']
     full_it = problem_data['max_iterations']
 
     average_regret_list = []
+    regret_list = []
     for obj,i in zip(obj_list,range(len(obj_list))):
         if len(obj) != full_it:
             obj += [obj[-1]]*(full_it-len(obj))
         it = len(obj)
-        cumulative_regret = [f_opt - np.sum(obj[:t]) for t in range(1,it+1)]
-        average_regret = [f_opt - (1/t) * np.sum(obj[:t]) for t in range(1,it+1)]
+        regret = [f_opt_list[i] - np.max(obj[:t]) for t in range(1,it+1)]
+        regret_list.append(regret)
+        cumulative_regret = [f_opt_list[i] - np.sum(obj[:t]) for t in range(1,it+1)]
+        average_regret = [f_opt_list[i] - (1/t) * np.sum(obj[:t]) for t in range(1,it+1)]
         average_regret_list.append(average_regret)
     average_regret = np.mean(np.array(average_regret_list),axis=0)
+    average_regret_std = np.std(np.array(average_regret_list),axis=0)
     label = problem_data['human_behaviour']
     if label.__class__ != float:
         label = label[0].upper() + label[1:]
     else:
-        label = '$p(best)=$'+str(label) 
+        label = '$p($Best$)=$'+str(label) 
     # label = '$\mathbb{E}[$'+label+'$]$'
     # captialise first letter 
-    axs[1].plot(np.arange(init,len(average_regret)),average_regret[init:],c=c,lw=1.5,label=label)
+    x = np.arange(init,len(average_regret))
+
+    axs[1].plot(x,average_regret[init:],c=c,lw=1.5,label=label)
+    axs[1].fill_between(x,average_regret[init:]-average_regret_std[init:],average_regret[init:]+average_regret_std[init:],alpha=0.1,color=c)
+
 
     ax = axs[0]
     regret_list = np.array(regret_list)
     mean_instantaneous_regret = np.mean(regret_list,axis=0)
-    ax.plot(np.arange(init,len(mean_instantaneous_regret)),mean_instantaneous_regret[init:],c=c,lw=1.5,label=label)
+    std_instantaneous_regret = np.std(regret_list,axis=0)
+    x = np.arange(init,len(mean_instantaneous_regret))
+    ax.plot(x,mean_instantaneous_regret[init:],c=c,lw=1.5,label=label)
+    ax.fill_between(x,mean_instantaneous_regret[init:]-std_instantaneous_regret[init:],mean_instantaneous_regret[init:]+std_instantaneous_regret[init:],alpha=0.1,color=c)
 
     return 
 
-colors = ['tab:red','tab:blue','tab:green','k','tab:orange','tab:purple','tab:brown']
+colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
 human_behaviours = ['expert','adversarial','trusting',0.25,0.5,0.75]
 fig,axs = plt.subplots(1,2,figsize=(10,4))
 
@@ -82,13 +93,24 @@ for i in range(len(human_behaviours)):
 
     plot_regret(problem_data,axs,colors[i])
 fs = 12
-axs[0].set_ylabel(r"Instantaneous Regret, $r_\tau$",fontsize=fs)
+axs[0].set_ylabel(r"Simple Regret, $r_\tau$",fontsize=fs)
+for ax in axs:
+    ax.grid(True,alpha=0.5)
+    x_start = problem_data['sample_initial']
+    max_y = ax.get_ylim()[1]
+    min_y = ax.get_ylim()[0]
+    ax.plot([x_start,x_start],[min_y,max_y],c='k',ls='--',lw=1,alpha=0.5)
 axs[0].set_xlabel(r"Iterations, $\tau$",fontsize=fs)
 axs[1].set_xlabel(r"Iterations, $\tau$",fontsize=fs)
 axs[1].set_ylabel(r"Average Regret, ${R_\tau}/{\tau}$",fontsize=fs)
 
-axs[0].legend(frameon=False)
-axs[1].legend(frameon=False)
-fig.suptitle(r'Regret expectation over 50 functions, $f \sim \mathcal{GP}(\mu \equiv 0, K_M (d,\nu = 0.5))$, 3 alternate choices',fontsize=int(fs))
+lines, labels = axs[0].get_legend_handles_labels()
+fig.legend(lines, labels, loc='lower center', bbox_to_anchor=(0.5, 0), ncol=6,frameon=False)
+
+
+l = problem_data['lengthscale']
+
+fig.suptitle(r'Regret expectation over 50 functions, $f \sim \mathcal{GP}(\mu \equiv 0, K_M (d,\nu = '+str(l)+'))$, '+str(problem_data['alternatives'])+' alternate choices',fontsize=int(fs))
 fig.tight_layout()
+fig.subplots_adjust(bottom=0.2)
 plt.savefig('bo/overall_regret.pdf')

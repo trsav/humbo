@@ -61,8 +61,10 @@ def bo(
     iteration = len(data["data"]) - 1
 
     while len(data['data']) < problem_data['max_iterations']:
-
-        os.mkdir(path + "/" + str(iteration + 1))
+        
+        if problem_data['plotting'] == True:
+            os.mkdir(path + "/" + str(iteration + 1))
+            
         start_time = time.time()
         data = read_json(data_path)
         inputs, outputs, cost = format_data(data)
@@ -416,31 +418,33 @@ def bo(
         data["data"][-1] = run_info
         save_json(data, data_path)
 
-        regret_list = [d['regret'] for d in data['data']]
-        init = problem_data['sample_initial']
-        it = len(regret_list)
-        fig,axs = plt.subplots(1,2,figsize=(10,4))
-        fs = 16
-        ax = axs[0]
-        ax.plot(np.arange(it),regret_list,c='k',lw=1)
-        axs[0].set_ylabel(r"$r_\tau$",fontsize=fs)
-        axs[0].set_xlabel(r"$\tau$",fontsize=fs)
-        axs[1].set_ylabel(r"$\frac{R_\tau}{\tau}$",fontsize=fs)
-        obj = [d['objective'] for d in data['data']]
-        cumulative_regret = [t*f.f_opt - np.sum(obj[:t]) for t in range(1,it+1)]
-        average_regret = [f.f_opt - (1/t) * np.sum(obj[:t]) for t in range(1,it+1)]
+        if problem_data['plotting'] == True:
 
-        ax = axs[1]
-        ax.set_xlabel(r"$\tau$",fontsize=fs)
+            regret_list = [d['regret'] for d in data['data']]
+            init = problem_data['sample_initial']
+            it = len(regret_list)
+            fig,axs = plt.subplots(1,2,figsize=(10,4))
+            fs = 16
+            ax = axs[0]
+            ax.plot(np.arange(it),regret_list,c='k',lw=1)
+            axs[0].set_ylabel(r"$r_\tau$",fontsize=fs)
+            axs[0].set_xlabel(r"$\tau$",fontsize=fs)
+            axs[1].set_ylabel(r"$\frac{R_\tau}{\tau}$",fontsize=fs)
+            obj = [d['objective'] for d in data['data']]
+            cumulative_regret = [t*f.f_opt - np.sum(obj[:t]) for t in range(1,it+1)]
+            average_regret = [f.f_opt - (1/t) * np.sum(obj[:t]) for t in range(1,it+1)]
 
-        ax.plot(np.arange(it),average_regret,c='k',lw=1)
-        ax.plot([0,it],[0,0],c='k',lw=1,ls='--',label='Reference')
+            ax = axs[1]
+            ax.set_xlabel(r"$\tau$",fontsize=fs)
 
-        ax.legend(frameon=False)
+            ax.plot(np.arange(it),average_regret,c='k',lw=1)
+            ax.plot([0,it],[0,0],c='k',lw=1,ls='--',label='Reference')
 
-        for ax in axs:
-            ax.spines['top'].set_visible(False)
-            ax.spines['right'].set_visible(False)
-        fig.tight_layout()
-        fig.savefig(path + "/regret.pdf")
-        plt.close()
+            ax.legend(frameon=False)
+
+            for ax in axs:
+                ax.spines['top'].set_visible(False)
+                ax.spines['right'].set_visible(False)
+            fig.tight_layout()
+            fig.savefig(path + "/regret.pdf")
+            plt.close()
