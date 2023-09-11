@@ -17,8 +17,8 @@ import multiprocessing
 
 
 def run_behaviour(data):
-    behaviour_index,aq,f_key = data
-    human_behaviours = ['expert','adversarial','trusting',0.25,0.5,0.75]
+    behaviour_index,aq,f_key,d = data
+    human_behaviours = ['expert','adversarial','trusting','informed',0.25,0.5,0.75]
     # for this problem data
     problem_data = {}
     problem_data["sample_initial"] = 4
@@ -27,8 +27,8 @@ def run_behaviour(data):
     problem_data["NSGA_iters"] = 50
     problem_data["plotting"] = True
     problem_data['max_iterations'] = 75
-    problem_data['lengthscale'] = 0.4
-    problem_data['dim'] = 1
+    problem_data['lengthscale'] = 0.75
+    problem_data['dim'] = d
     # at a given human behaviour
     problem_data['human_behaviour'] = human_behaviours[behaviour_index]
     problem_data['acquisition_function'] = aq
@@ -40,7 +40,7 @@ def run_behaviour(data):
     f = Function(create_problem(key,problem_data['lengthscale'],problem_data['dim']))
 
     file = str(uuid.uuid4())
-    path = "bo/" + file + "/"
+    path = "bo/" + file 
     os.mkdir(path)
 
     problem_data['time_created'] = str(datetime.datetime.now())
@@ -64,13 +64,15 @@ if __name__ == '__main__':
     try:
         f_index = int(sys.argv[1])
         aq = sys.argv[2]
+        d = int(sys.argv[3])
+        pool = multiprocessing.Pool(processes=6)
+        pool.map(run_behaviour,[(i,aq,f_keys[f_index],d) for i in range(6)])
+        pool.close()
+
     except:
         f_index = 0
         behaviour_index = 0
+        d = 2
         aq = 'UCB'
-
-    pool = multiprocessing.Pool(processes=6)
-    # pool.map(run_behaviour,range(6))
-    pool.map(run_behaviour,[(i,aq,f_keys[f_index]) for i in range(6)])
-    pool.close()
+        run_behaviour((behaviour_index,aq,f_keys[f_index],d))
 

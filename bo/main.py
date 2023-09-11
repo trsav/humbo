@@ -60,12 +60,13 @@ def bo(
 
     while len(data['data']) < problem_data['max_iterations']:
         
-        if problem_data['plotting'] == True and problem_data['dim'] == 1:
+        if problem_data['plotting'] == True:
             os.mkdir(path + "/" + str(iteration + 1))
             
         start_time = time.time()
         data = read_json(data_path)
         inputs, outputs, cost = format_data(data)
+        d = len(inputs[0])
         f_best = np.max(outputs)
         gp = build_gp_dict(*train_gp(inputs, outputs, gp_ms))
         util_args = (gp, f_best)
@@ -118,6 +119,7 @@ def bo(
 
         if problem_data['human_behaviour'] == 'trusting':
             x_opt = x_opt_aq
+
         else:
 
             n_opt = int(len(x_bounds) * (alternatives-1))
@@ -147,9 +149,15 @@ def bo(
 
                 def _evaluate(self, x, out, *args, **kwargs):
                     x_sols = jnp.array(jnp.split(x, alternatives-1, axis=1))
+                    d = x_sols.shape[0]
                     aq_list = np.sum([aq(x_i, util_args) for x_i in x_sols], axis=0)
+                    if d == 1:
+                        app = jnp.array([[x_opt_aq for i in range(len(x_sols[0,:,0]))]]).T
+                    else:
+                        app = jnp.array([[x_opt_aq for i in range(len(x_sols[0,:,0]))]])
 
-                    x_sols = jnp.append(x_sols, jnp.array([[x_opt_aq for i in range(len(x_sols[0,:,0]))]]).T, axis=0)
+                    x_sols = jnp.append(x_sols, app, axis=0)
+
                     K_list = []
                     for i in range(len(x_sols[0])):
                         set = jnp.array([x_sols[j][i] for j in range(alternatives)])
@@ -220,7 +228,7 @@ def bo(
                 fig.savefig(path + "/" + str(iteration + 1) + "/pareto.pdf")
                 plt.close()
 
-            if problem_data['plotting'] == True and problem_data['dim'] == 1:
+            if problem_data['plotting'] == True:
 
 
                 fig,axs = plt.subplots(1,alternatives+1,figsize=(10,4))
@@ -258,15 +266,24 @@ def bo(
                 plt.close() 
             if problem_data['human_behaviour'] == 'expert':
                 f_utopia = []
+                x_tests = jnp.array(jnp.split(x_best_utopia, alternatives))
                 for i in range(alternatives):
-                    f_utopia.append(f(x_best_utopia[i]))
-                x_opt = np.array([x_best_utopia[np.argmax(f_utopia)]])
+                    f_utopia.append(f(x_tests[i]))
+                x_opt = np.array([x_tests[np.argmax(f_utopia)]])
+
+            if problem_data['human_behaviour'] == 'informed':
+                f_utopia = []
+                x_tests = jnp.array(jnp.split(x_best_utopia, alternatives))
+                for i in range(alternatives):
+                    f_utopia.append(f(x_tests[i]))
+                x_opt = np.array([x_tests[np.argmax(f_utopia)]])
 
             if problem_data['human_behaviour'] == 'adversarial':
                 f_utopia = []
+                x_tests = jnp.array(jnp.split(x_best_utopia, alternatives))
                 for i in range(alternatives):
-                    f_utopia.append(f(x_best_utopia[i]))
-                x_opt = np.array([x_best_utopia[np.argmin(f_utopia)]])
+                    f_utopia.append(f(x_tests[i]))
+                x_opt = np.array([x_tests[np.argmin(f_utopia)]])
             
 
             if problem_data['human_behaviour'].__class__ == float:
@@ -274,17 +291,20 @@ def bo(
                     raise ValueError("Human behaviour must be between 0 and 1")
                 
                 f_utopia = []
+                x_tests = jnp.array(jnp.split(x_best_utopia, alternatives))
                 for i in range(alternatives):
-                    f_utopia.append(f(x_best_utopia[i]))
+                    f_utopia.append(f(x_tests[i]))
 
                 best_index = np.argmax(f_utopia)
                 probability_of_correct = np.random.uniform()
                 if probability_of_correct < problem_data['human_behaviour']:
-                    x_opt = np.array([x_best_utopia[best_index]])
+                    x_opt = np.array([x_tests[best_index]])
                 else:
-                    x_best_utopia = np.delete(x_best_utopia,best_index,axis=0)
-                    x_opt = np.array([x_best_utopia[np.random.randint(0,alternatives-1)]])
+                    x_tests = np.delete(x_tests,best_index,axis=0)
+                    x_opt = np.array([x_tests[np.random.randint(0,alternatives-1)]])
 
+        if d == 1:
+            x_opt = [x_opt[0].item()]
         if problem_data['plotting'] == True and problem_data['dim'] == 1:
             fig, axs = plt.subplots(2, 1, figsize=(8, 4))
             ax = axs[0]
@@ -384,7 +404,16 @@ def bo(
 
         mu_opt,var_opt = inference(gp, jnp.array([x_opt]))
 
-        x_opt = list(x_opt)
+
+        if d > 1 and problem_data['human_behaviour'] != 'trusting':
+            x_opt = x_opt[0]
+
+        if d > 1 and problem_data['human_behaviour'] == 'trusting':
+
+            x_opt = [x.item() for x in list(x_opt)]
+        
+        
+
         print("Optimal Solution: ", x_opt)
 
 

@@ -21,7 +21,8 @@ def plot_regret(problem_data,axs,c):
     # create dataframe from list of dictionaries 
     df = pd.DataFrame(problem_data_list)
 
-    df = df.loc[(df['sample_initial'] == problem_data['sample_initial']) & (df['gp_ms'] == problem_data['gp_ms']) & (df['alternatives'] == problem_data['alternatives']) & (df['NSGA_iters'] == problem_data['NSGA_iters']) & (df['max_iterations'] == problem_data['max_iterations']) & (df['human_behaviour'] == problem_data['human_behaviour']) & (df['acquisition_function'] == problem_data['acquisition_function'])]
+    df = df.loc[(df['sample_initial'] == problem_data['sample_initial']) & (df['gp_ms'] == problem_data['gp_ms']) & (df['alternatives'] == problem_data['alternatives']) & (df['NSGA_iters'] == problem_data['NSGA_iters']) & (df['max_iterations'] == problem_data['max_iterations']) & (df['human_behaviour'] == problem_data['human_behaviour']) & (df['acquisition_function'] == problem_data['acquisition_function']) & (df['lengthscale'] == problem_data['lengthscale'])]
+    print(df)
     file_names = df['file_name'].values
     regret_list = []
     obj_list = []
@@ -76,11 +77,10 @@ def plot_regret(problem_data,axs,c):
 colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
 human_behaviours = ['expert','adversarial','trusting',0.25,0.5,0.75]
 
-for aq in ['UCB','EI']
+for aq in ['UCB','EI']:
     fig,axs = plt.subplots(1,2,figsize=(10,4))
 
     for i in range(len(human_behaviours)):
-        aq = 'UCB'
         problem_data = {}
         problem_data["sample_initial"] = 4
         problem_data["gp_ms"] = 8
@@ -88,7 +88,8 @@ for aq in ['UCB','EI']
         problem_data["NSGA_iters"] = 50
         problem_data["plotting"] = True
         problem_data['max_iterations'] = 75
-        problem_data['lengthscale'] = 0.5
+        problem_data['lengthscale'] = 0.8
+        # problem_data['lengthscale'] = 0.8
         # at a given human behaviour
         problem_data['human_behaviour'] = human_behaviours[i]
         problem_data['acquisition_function'] = aq
@@ -114,4 +115,4 @@ for aq in ['UCB','EI']
     fig.suptitle(r'Regret expectation over 50 functions, $f \sim \mathcal{GP}(\mu \equiv 0, K_M (d,\nu = '+str(l)+'))$, '+str(problem_data['alternatives'])+' alternate choices, $\mathcal{U}(x)=$'+str(aq),fontsize=int(fs))
     fig.tight_layout()
     fig.subplots_adjust(bottom=0.2)
-    plt.savefig('bo/overall_regret.pdf')
+    plt.savefig('bo/overall_regret_'+str(aq)+'_.pdf')
