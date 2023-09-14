@@ -217,7 +217,7 @@ def bo(
                     c="#D81B60",
                     label="Best Joint Variability",
                 )
-                ax.scatter(-F[utopia_sol, 0], -F[utopia_sol, 1], s=50, c="k", label="Utopia")
+                ax.scatter(-F[utopia_sol, 0], -F[utopia_sol, 1], s=50, c="k", label="Knee-solution")
                 ax.set_xlabel("Sum of Acquisition Function Values")
                 ax.set_ylabel("Joint Variability")
                 ax.spines["right"].set_visible(False)
@@ -265,13 +265,6 @@ def bo(
                 fig.savefig(path + "/" + str(iteration + 1) + "/choices.pdf")
                 plt.close() 
             if problem_data['human_behaviour'] == 'expert':
-                f_utopia = []
-                x_tests = jnp.array(jnp.split(x_best_utopia, alternatives))
-                for i in range(alternatives):
-                    f_utopia.append(f(x_tests[i]))
-                x_opt = np.array([x_tests[np.argmax(f_utopia)]])
-
-            if problem_data['human_behaviour'] == 'informed':
                 f_utopia = []
                 x_tests = jnp.array(jnp.split(x_best_utopia, alternatives))
                 for i in range(alternatives):
@@ -379,8 +372,17 @@ def bo(
                         -f_aq(x_best_utopia[i], util_args),
                         c="k",
                         s=40,
-                        label="Utopia Set" if i == 0 else None,
+                        label="Knee Set" if i == 0 else None,
                     )
+                    ax.text(
+                    x_best_utopia[i],
+                    -f_aq(x_best_utopia[i], util_args) + 0.25,
+                    "Choice "+str(i+1),
+                    ha="center",
+                    va="bottom",
+                    fontsize=8,
+                )
+
 
             ax.scatter(
                 x_opt_aq,
@@ -389,6 +391,20 @@ def bo(
                 s=40,
                 label='Optimum'
             )
+ 
+            # text of 'choice x' about this scatter
+            ax.text(
+                x_opt_aq,
+                -f_aq(x_opt_aq, util_args) + 0.25,
+                "Choice "+str(alternatives),
+                ha="center",
+                va="bottom",
+                fontsize=8,
+            )
+
+
+
+
             u_opt = -f_aq(x_opt, util_args).item()
             ax.plot([x_opt, x_opt], [u_opt, min(aq_vals_list)], c="k", lw=1, ls="--",label='Selected')
 
