@@ -50,14 +50,13 @@ def create_problem(key,l,d):
         objective=negative_mll,
         train_data=D,
         optim=ox.adam(learning_rate=0.1),
-        num_iters=100,
-        safe=True,
+        num_iters=200,
         key=random.PRNGKey(0),
     )
 
     f_dict = {"posterior": opt_posterior, "D": D, "bounds": [[x_l, x_u] for i in range(d)], "f_opt": f_opt,"dim":d}
-    with open("function_creation/function.pkl", "wb") as f:
-        pickle.dump(f_dict, f)
+    # with open("function_creation/function.pkl", "wb") as f:
+    #     pickle.dump(f_dict, f)
 
     return f_dict
 

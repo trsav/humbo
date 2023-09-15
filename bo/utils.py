@@ -129,6 +129,7 @@ def read_json(path):
     # read a json file as a dictionary
     with open(path, "r") as f:
         data = json.load(f)
+    # close file
     return data
 
 

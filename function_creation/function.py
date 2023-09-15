@@ -3,7 +3,7 @@ import os
 
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 from bo.utils import *
-from bo.main import *
+from bo.algorithm import *
 import uuid
 import pickle
 
