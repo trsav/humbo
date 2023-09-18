@@ -31,3 +31,12 @@ class Function:
         latent_dist = self.opt_posterior.predict(jnp.array([x]).T, train_data=self.D)
         predictive_dist = self.opt_posterior.likelihood(latent_dist)
         return predictive_dist.mean()
+
+class SimpleFunction:
+    def __init__(self, f,bounds):
+        self.bounds = bounds
+        self.f = f
+        self.dim = len(self.bounds)
+
+    def __call__(self, x):
+        return self.f(x)

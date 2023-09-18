@@ -11,7 +11,7 @@ module load anaconda3/personal
 cd $PBS_O_WORKDIR
 source activate hitl-bo
 
-python3 bo/main.py UCB 1 
+python3 bo/benchmark.py UCB 1 
 # mpiexec -n 48 python3 bo/run.py EI 1 
 # mpiexec -n 48 python3 bo/run.py UCB 2 
 # mpiexec -n 48 python3 bo/run.py UCB 5 

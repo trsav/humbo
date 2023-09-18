@@ -41,7 +41,8 @@ def run_behaviour(behaviour_index,aq,d,f_key):
     f = Function(create_problem(key,problem_data['lengthscale'],problem_data['dim']))
 
     file = str(uuid.uuid4())
-    path = "bo/results/" + file + "/"
+    # path = "bo/plots/" + file + "/"
+    path = "bo/benchmark_results/" + file + "/"
 
     problem_data['time_created'] = str(datetime.datetime.now())
     problem_data['file_name'] = path
@@ -59,14 +60,13 @@ if __name__ == '__main__':
     try:
         aq = sys.argv[1]
         d = int(sys.argv[2])
+        for b_index in range(6):
+            pool = mp.Pool(mp.cpu_count()-2)
+            pool.starmap(run_behaviour, [(b_index,aq,d,f_key) for f_key in f_keys])
+            pool.close()
+            pool.join()
     except:
         aq = 'UCB'
         d = 1
-
-    for b_index in range(6):
-        # multiprocessing 48 cores for all 50 f_index values
-        pool = mp.Pool(mp.cpu_count()-2)
-        pool.starmap(run_behaviour, [(b_index,aq,d,f_key) for f_key in f_keys])
-        pool.close()
-        pool.join()
+        run_behaviour(0,aq,d,10)
 

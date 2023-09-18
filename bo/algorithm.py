@@ -485,3 +485,207 @@ def bo(
             fig.savefig(path + "/regret.pdf")
             plt.close()
 
+def bo_human(
+    f,
+    f_aq,
+    problem_data,
+):
+    path = problem_data["file_name"]
+    os.mkdir(path)
+    data_path = path + "/res.json"
+    sample_initial = problem_data["sample_initial"]
+    gp_ms = problem_data["gp_ms"]
+    x_bounds = f.bounds
+    samples = numpy_lhs(jnp.array(x_bounds), sample_initial)
+
+    data = {"data": []}
+
+    for sample in samples:
+        res = f(sample)
+        run_info = {
+            "id": str(uuid.uuid4()),
+            "inputs": list(sample),
+            "objective": res
+        }
+        data["data"].append(run_info)
+        save_json(data, data_path)
+
+    data = read_json(data_path)
+
+    data["problem_data"] = problem_data
+    alternatives = int(problem_data["alternatives"])
+    save_json(data, data_path)
+
+    iteration = len(data["data"]) - 1
+    while len(data['data']) < problem_data['max_iterations']:
+        
+        os.mkdir(path + "/" + str(iteration + 1))
+            
+        data = read_json(data_path)
+        inputs, outputs, cost = format_data(data)
+        f_best = np.max(outputs)
+        gp = build_gp_dict(*train_gp(inputs, outputs, gp_ms))
+        util_args = (gp, f_best)
+
+        aq = vmap(f_aq, in_axes=(0, None))
+
+        # optimising the aquisition of inputs, disregarding fidelity
+        print("Optimising utility function...")
+        upper_bounds_single = jnp.array([b[1] for b in x_bounds])
+        lower_bounds_single = jnp.array([b[0] for b in x_bounds])
+
+        opt_bounds = (lower_bounds_single, upper_bounds_single)
+        s_init = jnp.array(sample_bounds(x_bounds, 36))
+        
+        solver = bounded_solver(
+            method="l-bfgs-b",
+            jit=True,
+            fun=f_aq,
+            tol=1e-12,
+            maxiter=500
+        )
+
+        def optimise_aq(s):
+            res = solver.run(init_params=s, bounds=opt_bounds, args=util_args)
+            aq_val = res.state.fun_val
+            print('Iterating utility took: ', res.state.iter_num, ' iterations with value of ',aq_val)
+            x = res.params
+            return aq_val, x
+
+        aq_vals = []
+        xs = []
+        for s in s_init:
+            aq_val, x = optimise_aq(s)
+            aq_vals.append(aq_val)
+            xs.append(x)
+
+        x_opt_aq = xs[jnp.argmin(jnp.array(aq_vals))]
+
+        n_opt = int(len(x_bounds) * (alternatives-1))
+        upper_bounds = jnp.repeat(upper_bounds_single, alternatives-1)
+        lower_bounds = jnp.repeat(lower_bounds_single, alternatives-1)
+        termination = get_termination("n_gen", problem_data["NSGA_iters"])
+
+        algorithm = NSGA2(
+            pop_size=50,
+            n_offsprings=10,
+            sampling=FloatRandomSampling(),
+            crossover=SBX(prob=0.9, eta=15),
+            mutation=PM(eta=20),
+            eliminate_duplicates=True,
+        )
+
+
+        class MO_aq(Problem):
+            def __init__(self):
+                super().__init__(
+                    n_var=n_opt,
+                    n_obj=2,
+                    n_ieq_constr=0,
+                    xl=np.array(lower_bounds),
+                    xu=np.array(upper_bounds),
+                )
+
+            def _evaluate(self, x, out, *args, **kwargs):
+                x_sols = jnp.array(jnp.split(x, alternatives-1, axis=1))
+                d = x_sols.shape[0]
+                aq_list = np.sum([aq(x_i, util_args) for x_i in x_sols], axis=0)
+                if d == 1:
+                    app = jnp.array([[x_opt_aq for i in range(len(x_sols[0,:,0]))]]).T
+                else:
+                    app = jnp.array([[x_opt_aq for i in range(len(x_sols[0,:,0]))]])
+
+                x_sols = jnp.append(x_sols, app, axis=0)
+
+                K_list = []
+                for i in range(len(x_sols[0])):
+                    set = jnp.array([x_sols[j][i] for j in range(alternatives)])
+                    K = gp["posterior"].prior.kernel.gram(set).matrix
+                    K = jnp.linalg.det(K)
+                    K_list.append(K)
+                K_list = np.array(K_list)
+
+                out["F"] = [aq_list, -K_list]
+
+        problem = MO_aq()
+        res = minimize(
+            problem, algorithm, termination, seed=1, save_history=True, verbose=True
+        )
+
+    
+        F = res.F
+        X = res.X
+
+        AQ = F[:, 0]
+        D = F[:, 1]
+
+        aq_norm = (AQ - np.min(AQ)) / (np.max(AQ) - np.min(AQ))
+        d_norm = (D - np.min(D)) / (np.max(D) - np.min(D))
+        # utopia_index
+        distances = np.sqrt(aq_norm**2 + d_norm**2)
+
+        x_best_utopia = jnp.split(jnp.append(X[np.argmin(distances)], x_opt_aq),alternatives)
+
+
+
+        fig,axs = plt.subplots(1,alternatives+1,figsize=(10,4))
+        for i in range(len(axs)-2):
+            axs[i].get_shared_y_axes().join(axs[i], axs[i+1])
+        for i in range(len(axs)-1):
+            m,sigma = inference(gp, jnp.array([x_best_utopia[i]]))
+            sigma = np.sqrt(sigma)
+            p_y = tfd.Normal(loc=m, scale=sigma)
+            y = np.linspace(m-3*sigma,m+3*sigma,100)
+            p_y_vals = p_y.prob(y)
+            for j in range(len(axs)-1):
+                axs[j].fill_betweenx(y[:,0],[0 for i in range(100)],p_y_vals[:,0],alpha=0.05,color='k')
+            axs[i].plot(p_y_vals,y,c='k',lw=1)
+            axs[i].fill_betweenx(y[:,0],[0 for i in range(100)],p_y_vals[:,0],alpha=0.2,color='k')
+            axs[i].plot([0,p_y.prob(m)[0]],[m,m],c='k',lw=1,ls='--')
+            axs[i].set_title('Choice ' + str(i+1))
+            axs[i].set_xlabel(r"$p(f(x))$")
+
+        axs[0].set_ylabel(r"$f(x)$")
+        bar_labels = [str(i+1) for i in range(alternatives)]
+        aq_vals = [-aq(jnp.array([x_best_utopia[i]]), util_args).item() for i in range(alternatives)]
+        cols = ['k' for i in range(alternatives)]
+        axs[-1].bar(bar_labels,aq_vals,color=cols,alpha=0.5,edgecolor='k',lw=1)
+        axs[-1].set_ylabel(r"$\mathcal{U}(x)$")
+        axs[-1].set_xlabel("Choices")
+
+
+        for ax in axs:
+            ax.spines["top"].set_visible(False)
+            ax.spines["right"].set_visible(False)
+
+        fig.tight_layout()
+        fig.savefig(path + "/" + str(iteration + 1) + "/choices.pdf")
+        plt.close() 
+
+        random_index = np.random.randint(0,alternatives)
+        x_opt = x_best_utopia[random_index]
+
+        mu_opt,var_opt = inference(gp, jnp.array([x_opt]))
+
+        x_opt = list([float(x) for x in x_opt])
+
+        run_info = {
+            "id": "running",
+            "inputs": x_opt,
+            "pred_mu": np.float64(mu_opt),
+            "pred_sigma": np.float64(np.sqrt(var_opt)),
+        }
+        
+        data["data"].append(run_info)
+
+        print(data)
+        save_json(data, data_path)
+
+        f_eval =  f(x_opt)
+        run_info["objective"] = f_eval
+        run_info["id"] = str(uuid.uuid4())
+
+        data["data"][-1] = run_info
+        print(data)
+        save_json(data, data_path)
+        iteration += 1 
