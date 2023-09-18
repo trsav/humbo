@@ -16,7 +16,7 @@ import gc
 import resource
 
 
-def run_behaviour(behaviour_index,aq,d,f_key):
+def run_behaviour(behaviour_index,aq,d,f_key,res_path):
 
     human_behaviours = ['expert','adversarial','trusting',0.25,0.5,0.75]
     # for this problem data
@@ -42,7 +42,7 @@ def run_behaviour(behaviour_index,aq,d,f_key):
 
     file = str(uuid.uuid4())
     # path = "bo/plots/" + file + "/"
-    path = "bo/benchmark_results/" + file + "/"
+    path = res_path + file + "/"
 
     problem_data['time_created'] = str(datetime.datetime.now())
     problem_data['file_name'] = path
@@ -60,13 +60,14 @@ if __name__ == '__main__':
     try:
         aq = sys.argv[1]
         d = int(sys.argv[2])
+        f_index = int(sys.argv[3])
+
+        res_path = 'bo/benchmark_results/'
         for b_index in range(6):
-            pool = mp.Pool(mp.cpu_count()-2)
-            pool.starmap(run_behaviour, [(b_index,aq,d,f_key) for f_key in f_keys])
-            pool.close()
-            pool.join()
+            run_behaviour(b_index,aq,d,f_keys[f_index],res_path)
     except:
         aq = 'UCB'
         d = 1
-        run_behaviour(0,aq,d,10)
+        res_path = 'bo/plots/'
+        run_behaviour(0,aq,d,np.random.randint(0,40),res_path)
 

@@ -38,5 +38,5 @@ class SimpleFunction:
         self.f = f
         self.dim = len(self.bounds)
 
-    def __call__(self, x):
-        return self.f(x)
+    def __call__(self, x,ax):
+        return self.f(x,ax)

@@ -40,6 +40,8 @@ def bo(
     data = {"data": []}
 
     for sample in samples:
+        
+
         res = f(sample)
         run_info = {
             "id": str(uuid.uuid4()),
@@ -197,13 +199,14 @@ def bo(
             utopia_sol = np.argmin(distances)
 
             if problem_data['plotting'] == True:
-                fig, ax = plt.subplots(1, 1, figsize=(6, 4))
+                fig, ax = plt.subplots(1, 1, figsize=(7, 3.5))
                 arg_sort = np.argsort(-F[:,0])
                 ax.scatter(
                     -F[arg_sort, 0],
                     -F[arg_sort, 1],
                     c= 'k',
                     marker='+',
+                    lw=1,
                     label='Pareto Solutions'
                 )
                 ax.scatter(
@@ -211,7 +214,7 @@ def bo(
                     -F[best_aq_sol, 1],
                     s=50,
                     c="#FFC107",
-                    label="Best Acquisition Sum",
+                    label="Best Utility Sum",
                 )
                 ax.scatter(
                     -F[best_D_sol, 0],
@@ -221,7 +224,7 @@ def bo(
                     label="Best Joint Variability",
                 )
                 ax.scatter(-F[utopia_sol, 0], -F[utopia_sol, 1], s=50, c="k", label="Knee-solution")
-                ax.set_xlabel("Sum of Acquisition Function Values")
+                ax.set_xlabel("Sum of Utility Function Values")
                 ax.set_ylabel("Joint Variability")
                 ax.spines["right"].set_visible(False)
                 ax.spines["top"].set_visible(False)
@@ -343,7 +346,7 @@ def bo(
                 aq_vals_list,
                 c="k",
                 lw=1,
-                label="Acquisition Function",
+                label="Utility Function",
                 zorder=-1,
             )
             ax.fill_between(
@@ -415,7 +418,7 @@ def bo(
                 frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.45), ncol=5,fontsize=8
             )
             fig.tight_layout()
-            plt.savefig(path + "/" + str(iteration + 1) + "/acquisition.pdf")
+            plt.savefig(path + "/" + str(iteration + 1) + "/utility.pdf")
             plt.savefig(path + "/latest.pdf")
             plt.close()
 
@@ -489,6 +492,7 @@ def bo_human(
     f,
     f_aq,
     problem_data,
+    visualise
 ):
     path = problem_data["file_name"]
     os.mkdir(path)
@@ -499,9 +503,14 @@ def bo_human(
     samples = numpy_lhs(jnp.array(x_bounds), sample_initial)
 
     data = {"data": []}
-
+    iteration = 1
     for sample in samples:
-        res = f(sample)
+        fig,ax = plt.subplots(1,1,figsize=(8,4))
+        res,ax = f(sample,ax)
+        os.mkdir(path + "/" + str(iteration))
+        fig.savefig(path + "/" + str(iteration) + "/eval_information.pdf")
+        plt.close()
+        iteration += 1
         run_info = {
             "id": str(uuid.uuid4()),
             "inputs": list(sample),
@@ -516,11 +525,9 @@ def bo_human(
     alternatives = int(problem_data["alternatives"])
     save_json(data, data_path)
 
-    iteration = len(data["data"]) - 1
+    os.mkdir(path + "/" + str(iteration))
     while len(data['data']) < problem_data['max_iterations']:
         
-        os.mkdir(path + "/" + str(iteration + 1))
-            
         data = read_json(data_path)
         inputs, outputs, cost = format_data(data)
         f_best = np.max(outputs)
@@ -562,13 +569,17 @@ def bo_human(
         x_opt_aq = xs[jnp.argmin(jnp.array(aq_vals))]
 
         n_opt = int(len(x_bounds) * (alternatives-1))
-        upper_bounds = jnp.repeat(upper_bounds_single, alternatives-1)
-        lower_bounds = jnp.repeat(lower_bounds_single, alternatives-1)
+        # upper_bounds = jnp.repeat(upper_bounds_single, alternatives-1)
+        upper_bounds = jnp.array([upper_bounds_single for i in range(alternatives-1)])
+        upper_bounds = upper_bounds.reshape(-1)
+        # lower_bounds = jnp.repeat(lower_bounds_single, alternatives-1)
+        lower_bounds = jnp.array([lower_bounds_single for i in range(alternatives-1)])
+        lower_bounds = lower_bounds.reshape(-1)
         termination = get_termination("n_gen", problem_data["NSGA_iters"])
 
         algorithm = NSGA2(
-            pop_size=50,
-            n_offsprings=10,
+            pop_size=100,
+            n_offsprings=30,
             sampling=FloatRandomSampling(),
             crossover=SBX(prob=0.9, eta=15),
             mutation=PM(eta=20),
@@ -612,7 +623,6 @@ def bo_human(
             problem, algorithm, termination, seed=1, save_history=True, verbose=True
         )
 
-    
         F = res.F
         X = res.X
 
@@ -624,46 +634,63 @@ def bo_human(
         # utopia_index
         distances = np.sqrt(aq_norm**2 + d_norm**2)
 
-        x_best_utopia = jnp.split(jnp.append(X[np.argmin(distances)], x_opt_aq),alternatives)
+        x_best_utopia = list(jnp.split(jnp.append(X[np.argmin(distances)], x_opt_aq),alternatives))
 
 
-
-        fig,axs = plt.subplots(1,alternatives+1,figsize=(10,4))
-        for i in range(len(axs)-2):
-            axs[i].get_shared_y_axes().join(axs[i], axs[i+1])
-        for i in range(len(axs)-1):
+        fig,axs = plt.subplots(2,alternatives+1,figsize=(12,8))
+        for i in range(len(axs[0,:])-2):
+            axs[0,i].get_shared_y_axes().join(axs[0,i], axs[0,i+1])
+        for i in range(len(axs[1,:])-1):
+            axs[1,i].get_shared_y_axes().join(axs[1,i], axs[1,i+1])
+        for i in range(len(axs[0,:])-1):
             m,sigma = inference(gp, jnp.array([x_best_utopia[i]]))
             sigma = np.sqrt(sigma)
             p_y = tfd.Normal(loc=m, scale=sigma)
             y = np.linspace(m-3*sigma,m+3*sigma,100)
             p_y_vals = p_y.prob(y)
-            for j in range(len(axs)-1):
-                axs[j].fill_betweenx(y[:,0],[0 for i in range(100)],p_y_vals[:,0],alpha=0.05,color='k')
-            axs[i].plot(p_y_vals,y,c='k',lw=1)
-            axs[i].fill_betweenx(y[:,0],[0 for i in range(100)],p_y_vals[:,0],alpha=0.2,color='k')
-            axs[i].plot([0,p_y.prob(m)[0]],[m,m],c='k',lw=1,ls='--')
-            axs[i].set_title('Choice ' + str(i+1))
-            axs[i].set_xlabel(r"$p(f(x))$")
+            print(sum(p_y_vals))
+            for j in range(len(axs[0,:])-1):
+                axs[0,j].fill_betweenx(y[:,0],[0 for i in range(100)],p_y_vals[:,0],alpha=0.05,color='k')
+            axs[0,i].plot(p_y_vals,y,c='k',lw=1)
+            axs[0,i].fill_betweenx(y[:,0],[0 for i in range(100)],p_y_vals[:,0],alpha=0.2,color='k')
+            axs[0,i].plot([0,p_y.prob(m)[0]],[m,m],c='k',lw=1,ls='--')
+            axs[0,i].set_title('Choice ' + str(i+1))
+            axs[0,i].set_xlabel(r"$p(f(x))$")
+            axs[1,i] = visualise(axs[1,i],x_best_utopia[i])
 
-        axs[0].set_ylabel(r"$f(x)$")
+        axs[0,0].set_ylabel(r"$f(x)$")
         bar_labels = [str(i+1) for i in range(alternatives)]
         aq_vals = [-aq(jnp.array([x_best_utopia[i]]), util_args).item() for i in range(alternatives)]
         cols = ['k' for i in range(alternatives)]
-        axs[-1].bar(bar_labels,aq_vals,color=cols,alpha=0.5,edgecolor='k',lw=1)
-        axs[-1].set_ylabel(r"$\mathcal{U}(x)$")
-        axs[-1].set_xlabel("Choices")
+        axs[0,-1].bar(bar_labels,aq_vals,color=cols,alpha=0.5,edgecolor='k',lw=1)
+        axs[0,-1].set_ylabel(r"$\mathcal{U}(x)$")
+        axs[0,-1].set_xlabel("Choices")
+
+        # remove ticks and splines from axs[1,-1]
+        axs[1,-1].set_xticks([])
+        axs[1,-1].set_yticks([])
+        axs[1,-1].spines['top'].set_visible(False)
+        axs[1,-1].spines['right'].set_visible(False)
+        axs[1,-1].spines['bottom'].set_visible(False)
+        axs[1,-1].spines['left'].set_visible(False)
 
 
-        for ax in axs:
+        for ax in axs[0,:]:
             ax.spines["top"].set_visible(False)
             ax.spines["right"].set_visible(False)
 
+
         fig.tight_layout()
-        fig.savefig(path + "/" + str(iteration + 1) + "/choices.pdf")
+        fig.savefig(path + "/" + str(iteration) + "/choices.pdf")
         plt.close() 
 
-        random_index = np.random.randint(0,alternatives)
-        x_opt = x_best_utopia[random_index]
+
+        if problem_data['automated'] == True:
+            x_opt = x_opt_aq
+        else:
+            random_index = np.random.randint(0,alternatives)
+            x_opt = x_best_utopia[random_index]
+
 
         mu_opt,var_opt = inference(gp, jnp.array([x_opt]))
 
@@ -681,11 +708,34 @@ def bo_human(
         print(data)
         save_json(data, data_path)
 
-        f_eval =  f(x_opt)
+        fig,ax = plt.subplots(1,1,figsize=(8,4))
+        f_eval,ax =  f(x_opt,ax)
+        fig.savefig(path + "/" + str(iteration) + "/eval_information.pdf")
+
         run_info["objective"] = f_eval
         run_info["id"] = str(uuid.uuid4())
 
         data["data"][-1] = run_info
-        print(data)
+
+        obj_list = [d['objective'] for d in data['data']]
+
+        fig,ax = plt.subplots(1,1,figsize=(10.5,3.5))
+        x = np.arange(1,len(obj_list)+1)
+        ax.plot(x,obj_list,c='k',lw=1)
+        fs = 12
+        ax.set_ylabel(r"Objective Values $f(x)$",fontsize=fs)
+        ax.grid(True,alpha=0.5)
+        x_start = problem_data['sample_initial']
+        max_y = ax.get_ylim()[1]
+        min_y = ax.get_ylim()[0]
+        ax.plot([x_start,x_start],[min_y,max_y],c='k',ls='--',lw=1,alpha=0.5)
+        ax.set_xlabel(r"Iterations, $\tau$",fontsize=fs)
+        fig.tight_layout()
+        # fig.subplots_adjust(bottom=0.2)
+        plt.savefig(path + "/objective.pdf")
+
         save_json(data, data_path)
-        iteration += 1 
+        iteration += 1
+        os.mkdir(path + "/" + str(iteration))
+
+

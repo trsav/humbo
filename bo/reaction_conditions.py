@@ -20,77 +20,134 @@ from scipy.integrate import ode
 
 
 
-# for this problem data
-aq = 'UCB'
-problem_data = {}
-problem_data["sample_initial"] = 4
-problem_data["gp_ms"] = 8
-problem_data["alternatives"] = 4
-problem_data["NSGA_iters"] = 75
-problem_data['max_iterations'] = 75
-problem_data['acquisition_function'] = aq
+def run_reaction_conditions(automated,iteration):
+    # for this problem data
+    aq = 'UCB'
+    problem_data = {}
+    problem_data["sample_initial"] = 8
+    problem_data["gp_ms"] = 8
+    problem_data["alternatives"] = 3
+    problem_data["NSGA_iters"] = 100
+    problem_data['max_iterations'] = 100
+    problem_data['automated'] = True
+    problem_data['acquisition_function'] = aq
 
-aqs = {'EI':EI,'UCB':UCB}
+    aqs = {'EI':EI,'UCB':UCB}
 
-# for a given function...
-file = str(uuid.uuid4())
-path = "bo/reaction_conditions_results/" + file + "/"
+    # for a given function...
 
-problem_data['time_created'] = str(datetime.datetime.now())
-problem_data['file_name'] = path
+    file = str(uuid.uuid4())
+    path = "bo/reaction_conditions_results/" + file + "/"
 
-def solve_ode(f, c0, t, k):
-    c = np.zeros((len(t), len(c0)))
-    c[0, :] = c0
-    r = ode(f)
-    r.set_initial_value(c[0], t[0]).set_f_params(k)
+    problem_data['time_created'] = str(datetime.datetime.now())
+    problem_data['file_name'] = path
 
-    for k in range(1, len(t)):
-        c[k, :] = r.integrate(t[k])
-        r.set_initial_value(c[k, :], t[k])
-    return c
+    def solve_ode(f, c0, t, k,x):
+        k = np.append(k,x)
+        c = np.zeros((len(t), len(c0)))
+        c[0, :] = c0
+        r = ode(f)
+        r.set_initial_value(c[0], t[0]).set_f_params(k)
 
-
-def kinetic_model(t, z, k):
-    c1 = z[0]
-    k1 = k[0]
-    dzdt = [0 for i in range(len(z))]
-    dzdt[0] = -k1 * c1
-    dzdt[1] = k1 * c1
-    return dzdt
+        for k in range(1, len(t)):
+            c[k, :] = r.integrate(t[k])
+            r.set_initial_value(c[k, :], t[k])
+        return c
 
 
-def f(x):
-
-    problem = {"f": kinetic_model, "name": "reaction"}
-    problem["tf"] = 4
-    problem["n"] = 200
-    problem["x0"] = [4, 0]
-    problem["param_names"] = ["$k_1$"]
-    problem["var_names"] = ["$C_a$", "$C_b$"]
-    problem["p"] = [1]
-
-
-    f = problem["f"]
-    tf = problem["tf"]
-    n = problem["n"]
-    x0 = problem["x0"]
-    p_true = problem["p"]
-
-    t = np.linspace(0, tf, n)
-    y = solve_ode(f, x0, t, p_true)
-    plt.figure()
-    for i in range(len(y[0])):
-        plt.plot(t, y[:, i])
-    plt.show()
-    
-    return y[0,-1]
-
-f = SimpleFunction(f,[[-5,5],[-5,5]])
+    def kinetic_model(t, s, k):
+        s1,s2 = s
+        k1,k2,E1,E2,R,a0,a1,a2,a3 = k
+        T = a0 + a1*t + a2*t**2 + a3*t**3
+        dsdt = [0 for i in range(len(s))]
+        dsdt[0] = - k1*s1*np.exp(-E1/(R*T))
+        dsdt[1] = k1*s1*np.exp(-E1/(R*T)) - k2*s2*np.exp(-E2/(R*T))
+        return dsdt
 
 
-bo_human(
-    f,
-    aqs[aq],
-    problem_data
-)
+    def f(x,ax):
+
+        problem = {"f": kinetic_model, "name": "reaction"}
+        problem["tf"] = 8
+        problem["n"] = 600
+        problem["x0"] = [0.7, 0]
+        problem["param_names"] = ["k_1","k_2"]
+        problem["var_names"] = ["$x_1$", "$x_2$"]
+        problem["k"] = [1.335E10,1.149E17,75000,125000,8.31]
+
+        f = problem["f"]
+        tf = problem["tf"]
+        n = problem["n"]
+        x0 = problem["x0"]
+        k = problem["k"]
+
+        t = np.linspace(0, tf, n)
+        y = solve_ode(f, x0, t, k, x)
+
+        a0,a1,a2,a3 = x
+        T = a0 + a1*t + a2*t**2 + a3*t**3
+
+        # ax.set_ylabel('Concentration (mol/L)')
+        # ax.set_xlabel('Time (min)')
+        # ls = ['solid','--',':']
+        # for i in range(len(y[0])):
+        #     ax.plot(t, y[:, i], label=problem["var_names"][i],c='k',ls=ls[i])
+
+        # ax.plot(t,T,c='tab:red',ls='solid',label='Temperature (K)')
+        # plot on same axis, temperature on right yaxis, concentration on left yaxis
+        ax.set_ylabel('Concentration (mol/L)')
+        ax.set_xlabel('Time (min)')
+        ls = ['solid','--',':']
+        for i in range(len(y[0])):
+            ax.plot(t, y[:, i], label=problem["var_names"][i],c='k',ls=ls[i])
+        
+        ax2 = ax.twinx()
+        ax2.plot(t,T,c='tab:red',ls='solid',label='Temperature (K)')
+        ax2.set_ylabel('Temperature (K)')
+        # ax2.set_ylim([300,400])
+        # ax2.set_xlim([0,8])
+        ax2.tick_params(axis='y', labelcolor='tab:red')
+        ax2.spines['right'].set_color('tab:red')
+        ax2.yaxis.label.set_color('tab:red')
+        ax2.tick_params(axis='y', colors='tab:red')
+        ax2.set_zorder(1)
+        ax.set_zorder(2)
+        ax.patch.set_visible(False)
+        ax2.patch.set_visible(False)
+
+
+        # left yaxis = concenration 
+        ax.grid(alpha=0.5)
+
+        # lgend but outside of plot
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+        ax2.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+
+        # ax.legend(frameon=False)
+
+        return y[-1,1],ax
+
+    def visualise(ax,x):
+        
+        t = np.linspace(0, 8, 600)
+        temperature_path = x[0] + x[1]*t + x[2]*t**2 + x[3]*t**3
+        ax.plot(t,temperature_path,c='k')
+        ax.set_xlabel('Time (min)')
+        ax.set_ylabel('Temperature (K)')
+
+        return ax
+
+    f = SimpleFunction(f,[[325,375],[-3,3],[-0.2,0.2],[-0.1,0.1]])
+
+
+    bo_human(
+        f,
+        aqs[aq],
+        problem_data,
+        visualise
+    )
+
+
+index = sys.argv[1]
+run_reaction_conditions(True,index)
