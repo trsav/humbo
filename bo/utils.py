@@ -118,6 +118,11 @@ def sample_bounds(bounds, n):
     sample = lhs(jnp.array(bounds), n)
     return sample
 
+def random_sample(bounds,n):
+    sample = np.zeros((n,len(bounds)))
+    for i in range(len(bounds)):
+        sample[:,i] = np.random.uniform(bounds[i,0],bounds[i,1],n)
+    return sample
 
 def sample_to_dict(sample, bounds):
     # convert a list of values to a dictionary
@@ -386,7 +391,7 @@ def plot_regret(problem_data,axs,c,directory):
     return 
 
 def delete_folders(problem_data):
-    directory = 'bo/benchmark_results'
+    directory = 'bo/batch_benchmark_results'
     files = os.listdir(directory)
     problem_data_list = []
     for i in tqdm(range(len(files))):
@@ -400,7 +405,7 @@ def delete_folders(problem_data):
     # create dataframe from list of dictionaries 
     df = pd.DataFrame(problem_data_list)
 
-    df = df.loc[(df['human_behaviour'] == problem_data['human_behaviour']) & (df['acquisition_function'] == problem_data['acquisition_function']) & (df['lengthscale'] == problem_data['lengthscale']) & (df['dim'] == problem_data['dim'])]
+    df = df.loc[(df['algorithm'] == problem_data['algorithm']) & (df['acquisition_function'] == problem_data['acquisition_function']) & (df['lengthscale'] == problem_data['lengthscale']) & (df['dim'] == problem_data['dim'])]
 
     file_names = df['file_name'].values
     regret_list = []
@@ -409,6 +414,21 @@ def delete_folders(problem_data):
     for file in file_names:
         shutil.rmtree(file)
     return 
+
+# for d in [1,2,5]:
+#     problem_data = {}
+#     problem_data['algorithm'] = 'random'
+#     problem_data["batch_size"] = 8
+#     problem_data["gp_ms"] = 8
+#     problem_data["NSGA_iters"] = 75
+#     problem_data["plotting"] = False
+#     problem_data['max_batches'] = 50
+#     problem_data['lengthscale'] = 0.3
+#     #problem_data['lengthscale'] = 0.8
+#     problem_data['dim'] = d
+#     # at a given human behaviour
+#     problem_data['acquisition_function'] = 'UCB'
+#     delete_folders(problem_data)
 
 
 def plot_human(aq,d):
@@ -590,7 +610,7 @@ def plot_batch(d):
     fig.subplots_adjust(bottom=0.2)
     plt.savefig('bo/plots/overall_regret_batch_'+str(d)+'.pdf')
 
-plot_batch(5)
+#plot_batch(5)
 
 def plot_results(folder,name):
 

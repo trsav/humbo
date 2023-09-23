@@ -61,7 +61,7 @@ if __name__ == '__main__':
         f_index = int(sys.argv[2])
         res_path = 'bo/batch_benchmark_results/'
         for d in [1,2,5]:
-            for algo in ['random','batch']:
+            for algo in ['random']:
                 run_behaviour(algo,aq,d,f_keys[f_index],res_path)
     except:
         aq = 'UCB'
