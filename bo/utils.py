@@ -306,8 +306,8 @@ def UCB(x, args):
 
 
 
-def plot_regret(problem_data,axs,c):
-    directory = 'bo/benchmark_results'
+def plot_regret(problem_data,axs,c,directory):
+    
     files = os.listdir(directory)
     problem_data_list = []
     for i in tqdm(range(len(files))):
@@ -346,7 +346,6 @@ def plot_regret(problem_data,axs,c):
             obj += [obj[-1]]*(full_it-len(obj))
 
         it = len(obj)
-        print(it)
         regret = [f_opt_list[i] - np.max(obj[:t]) for t in range(1,it+1)]
         regret_list.append(regret)
         cumulative_regret = [f_opt_list[i] - np.sum(obj[:t]) for t in range(1,it+1)]
@@ -356,6 +355,7 @@ def plot_regret(problem_data,axs,c):
     average_regret = np.mean(np.array(average_regret_list),axis=0)
     average_regret_std = np.std(np.array(average_regret_list),axis=0)
     label = problem_data['human_behaviour']
+
     if label.__class__ != float:
         label = label[0].upper() + label[1:]
     else:
@@ -411,7 +411,8 @@ def delete_folders(problem_data):
     return 
 
 
-def plot(aq,d):
+def plot_human(aq,d):
+    directory = 'bo/benchmark_results'
     colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
     human_behaviours = ['expert','adversarial','trusting',0.75,0.5,0.25]
 
@@ -434,7 +435,7 @@ def plot(aq,d):
         problem_data['human_behaviour'] = human_behaviours[i]
         problem_data['acquisition_function'] = aq
 
-        plot_regret(problem_data,axs,colors[i])
+        plot_regret(problem_data,axs,colors[i],directory)
     fs = 12
     axs[0].set_ylabel(r"Simple Regret, $r_\tau$",fontsize=fs)
     for ax in axs:
@@ -457,8 +458,206 @@ def plot(aq,d):
     fig.subplots_adjust(bottom=0.2)
     plt.savefig('bo/plots/overall_regret_aq_'+str(aq)+'_d_'+str(d)+'.pdf')
 
-# plot('EI',1)
-# plot('UCB',1)
-# plot('UCB',2)
-# plot('UCB',5)
+# plot_human('EI',1)
+# plot_human('UCB',1)
+# plot_human('UCB',2)
+# plot_human('UCB',5)
 
+def plot_regret_batch(problem_data,axs,c,directory):
+    
+    files = os.listdir(directory)
+    problem_data_list = []
+    for i in tqdm(range(len(files))):
+        if '.' not in files[i] and '_' not in files[i]:
+            results = directory+'/'+files[i] + '/res.json'
+            # open json
+            with open(results, "r") as f:
+                data = json.load(f)
+            problem_data_list.append(data['problem_data'])
+
+    # create dataframe from list of dictionaries 
+    df = pd.DataFrame(problem_data_list)
+    df = df.loc[(df['algorithm'] == problem_data['algorithm']) & (df['acquisition_function'] == problem_data['acquisition_function']) & (df['lengthscale'] == problem_data['lengthscale']) & (df['dim'] == problem_data['dim'])]
+
+    file_names = df['file_name'].values
+    regret_list = []
+    obj_list = []
+    f_opt_list = []
+    for file in file_names:
+        file = file.split('results/')[1]
+        file = directory + '/' +  file 
+        data_full = read_json(file+'res.json')
+        data = data_full['data']
+        f_opt = data_full['problem_data']['f_opt']
+        obj = [d['objective'] for d in data]
+        f_opt_list.append(f_opt)
+        obj_list.append(obj)
+
+    init = problem_data['batch_size']
+    full_it = problem_data['max_batches'] * problem_data['batch_size']
+
+    average_regret_list = []
+    regret_list = []
+    for obj,i in zip(obj_list,range(len(obj_list))):
+        if len(obj) != full_it:
+            obj += [obj[-1]]*(full_it-len(obj))
+
+        it = len(obj)
+        regret = [f_opt_list[i] - np.max(obj[:t]) for t in range(1,it+1)]
+        regret_list.append(regret)
+        cumulative_regret = [f_opt_list[i] - np.sum(obj[:t]) for t in range(1,it+1)]
+        average_regret = [f_opt_list[i] - (1/t) * np.sum(obj[:t]) for t in range(1,it+1)]
+        average_regret_list.append(average_regret)
+
+    average_regret = np.mean(np.array(average_regret_list),axis=0)
+    average_regret_std = np.std(np.array(average_regret_list),axis=0)
+    label = problem_data['algorithm']
+
+    label = label[0].upper() + label[1:]
+
+    try:
+        x = np.arange(init,len(average_regret))
+        print(x)
+        x = x / problem_data['batch_size']
+        print(x)
+        ax = axs
+        regret_list = np.array(regret_list)
+        mean_instantaneous_regret = np.mean(regret_list,axis=0)
+        std_instantaneous_regret = np.std(regret_list,axis=0)
+        x = np.arange(init,len(mean_instantaneous_regret))
+        ax.plot(x,mean_instantaneous_regret[init:],c=c,lw=1.5,label=label)
+        lower = mean_instantaneous_regret[init:]-std_instantaneous_regret[init:]
+        # cut of less than 0
+        lower[lower<0] = 0
+        upper = mean_instantaneous_regret[init:]+std_instantaneous_regret[init:]
+        ax.fill_between(x,lower,upper,alpha=0.1,color=c,lw=0)
+    except:
+        return 
+    return 
+
+def plot_batch(d):
+    directory = 'bo/batch_benchmark_results'
+    colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
+    algorithms = ['random']
+
+
+    fig,ax = plt.subplots(1,1,figsize=(5,3.5))
+
+    for i in range(len(algorithms)):
+        # for this problem data
+        problem_data = {}
+        problem_data["batch_size"] = 8
+        problem_data["gp_ms"] = 8
+        problem_data["alternatives"] = 4
+        problem_data["NSGA_iters"] = 75
+        problem_data["plotting"] = True
+        problem_data['max_batches'] = 50
+        problem_data['lengthscale'] = 0.3
+        #problem_data['lengthscale'] = 0.8
+        problem_data['dim'] = d
+        # at a given human behaviour
+        problem_data['algorithm'] = algorithms[i]
+        problem_data['acquisition_function'] = 'UCB'
+
+        plot_regret_batch(problem_data,ax,colors[i],directory)
+
+    fs = 12
+    ax.set_ylabel(r"Simple Regret, $r_\tau$",fontsize=fs)
+    ax.grid(True,alpha=0.5)
+    x_start = problem_data['batch_size']
+    max_y = ax.get_ylim()[1]
+    min_y = ax.get_ylim()[0]
+    ax.plot([x_start,x_start],[min_y,max_y],c='k',ls='--',lw=1,alpha=0.5)
+
+    ax.set_xlabel(r"Batch, $\tau$",fontsize=fs)
+
+    # current xaxis is in units of individual iterations within a batch
+    # need to convert to batch number
+    iterations = problem_data['max_batches']*problem_data['batch_size']
+    x_iteration = [0,iterations/2,iterations]
+    batch_iteration = [0,int(problem_data['max_batches']/2),problem_data['max_batches']]
+    ax.set_xticks(x_iteration)
+    ax.set_xticklabels(batch_iteration)
+
+
+    lines, labels = ax.get_legend_handles_labels()
+    fig.legend(lines, labels, loc='lower center', bbox_to_anchor=(0.5, -0.025), ncol=6,frameon=False)
+
+
+    #fig.suptitle(r'Regret expectation over 50 functions, $f \sim \mathcal{GP}(\mu \equiv 0, K_M (d,\nu = '+str(l)+'))$, '+str(problem_data['alternatives'])+' alternate choices, $\mathcal{U}(x)=$'+str(aq)+r', $x \in R^'+str(problem_data['dim'])+'$',fontsize=int(fs))
+    fig.suptitle('Batch Size = '+str(problem_data['batch_size']))
+    fig.tight_layout()
+    fig.subplots_adjust(bottom=0.2)
+    plt.savefig('bo/plots/overall_regret_batch_'+str(d)+'.pdf')
+
+plot_batch(5)
+
+def plot_results(folder,name):
+
+
+    fig,ax = plt.subplots(1,1,figsize=(7.5,3.5))
+
+    files = os.listdir(folder)
+    problem_data_list = []
+    for i in tqdm(range(len(files))):
+        if '.' not in files[i] and '_' not in files[i]:
+            results = folder+'/'+files[i] + '/res.json'
+            # open json
+            with open(results, "r") as f:
+                data = json.load(f)
+            problem_data_list.append(data['problem_data'])
+
+    # create dataframe from list of dictionaries 
+    df = pd.DataFrame(problem_data_list)
+
+    file_names = df['file_name'].values
+    obj_list = []
+    for file in file_names:
+        file = file.split('results/')[1]
+        file = folder + '/' +  file 
+        data_full = read_json(file+'res.json')
+        data = data_full['data']
+        obj = [d['objective'] for d in data]
+        if len(obj) != problem_data_list[0]['max_iterations']:
+            obj += [obj[-1]]*(problem_data_list[0]['max_iterations']-len(obj))
+
+        best_obj = []
+        best_obj_val = -1e30
+        for o in obj:
+            if o > best_obj_val:
+                best_obj_val = o
+            best_obj.append(best_obj_val)
+
+
+        obj_list.append(best_obj)
+
+    init = problem_data_list[0]['sample_initial']
+    full_it = problem_data_list[0]['max_iterations']
+
+
+    mean_obj = np.mean(np.array(obj_list),axis=0)
+    std_obj = np.std(np.array(obj_list),axis=0)
+    # for obj in obj_list:
+    #     ax.plot(np.arange(init,len(obj)),obj[init:],c='k',lw=1.5)
+    ax.plot(np.arange(init,len(mean_obj)),mean_obj[init:],c='k',lw=1.5,label='Mean')
+    ax.fill_between(np.arange(init,len(mean_obj)),mean_obj[init:]-std_obj[init:],mean_obj[init:]+std_obj[init:],alpha=0.1,color='k',lw=0,label='Standard Deviation')
+
+
+    fs = 12
+    ax.set_ylabel(r"Best Objective",fontsize=fs)
+    ax.grid(True,alpha=0.5)
+    x_start = problem_data_list[0]['sample_initial']
+    max_y = ax.get_ylim()[1]
+    min_y = ax.get_ylim()[0]
+    ax.plot([x_start,x_start],[min_y,max_y],c='k',ls='--',lw=1,alpha=0.5)
+    ax.set_xlabel(r"Iteration",fontsize=fs)
+
+    # lines, labels = ax.get_legend_handles_labels()
+    # fig.legend(lines, labels, loc='lower center', bbox_to_anchor=(0.5, -0.025), ncol=6,frameon=False)
+    ax.legend(frameon=False)
+
+    fig.tight_layout()
+    # fig.subplots_adjust(bottom=0.2)
+    plt.savefig('bo/plots/'+name+'.pdf')
+
+#plot_results('bo/reaction_conditions_results','reaction_conditions')

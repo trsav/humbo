@@ -20,24 +20,24 @@ from scipy.integrate import ode
 
 
 
-def run_reaction_conditions(automated,iteration):
+def run_reaction_conditions(automated,iteration,path,name):
     # for this problem data
     aq = 'UCB'
     problem_data = {}
     problem_data["sample_initial"] = 8
     problem_data["gp_ms"] = 8
     problem_data["alternatives"] = 3
-    problem_data["NSGA_iters"] = 100
+    problem_data["NSGA_iters"] = 50
     problem_data['max_iterations'] = 100
-    problem_data['automated'] = True
+    problem_data['automated'] = automated
     problem_data['acquisition_function'] = aq
 
     aqs = {'EI':EI,'UCB':UCB}
 
     # for a given function...
 
-    file = str(uuid.uuid4())
-    path = "bo/reaction_conditions_results/" + file + "/"
+    file = name
+    path = path + file + "/"
 
     problem_data['time_created'] = str(datetime.datetime.now())
     problem_data['file_name'] = path
@@ -148,6 +148,14 @@ def run_reaction_conditions(automated,iteration):
         visualise
     )
 
-
-index = sys.argv[1]
-run_reaction_conditions(True,index)
+try:
+    index = sys.argv[1]
+except:
+    index = 0 
+path = 'bo/human_reaction_conditions_results/'
+try:
+    os.mkdir(path)
+except:
+    pass
+name = 'tom'
+run_reaction_conditions(False,index,path,name)

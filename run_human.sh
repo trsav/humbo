@@ -12,4 +12,4 @@ module load anaconda3/personal
 cd $PBS_O_WORKDIR
 source activate multi_fidelity_experimental_design_env
 
-python3 bo/benchmark.py UCB 1 $PBS_ARRAY_INDEX
+python3 bo/benchmark_human.py UCB 1 $PBS_ARRAY_INDEX
