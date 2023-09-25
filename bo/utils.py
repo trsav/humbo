@@ -558,7 +558,7 @@ def plot_regret_batch(problem_data,axs,c,directory):
 def plot_batch(d):
     directory = 'bo/batch_benchmark_results'
     colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
-    algorithms = ['random']
+    algorithms = ['random','batch']
 
 
     fig,ax = plt.subplots(1,1,figsize=(5,3.5))
@@ -569,7 +569,7 @@ def plot_batch(d):
         problem_data["batch_size"] = 8
         problem_data["gp_ms"] = 8
         problem_data["alternatives"] = 4
-        problem_data["NSGA_iters"] = 75
+        problem_data["NSGA_iters"] = 200
         problem_data["plotting"] = True
         problem_data['max_batches'] = 50
         problem_data['lengthscale'] = 0.3
@@ -610,7 +610,9 @@ def plot_batch(d):
     fig.subplots_adjust(bottom=0.2)
     plt.savefig('bo/plots/overall_regret_batch_'+str(d)+'.pdf')
 
-#plot_batch(5)
+# plot_batch(1)
+# plot_batch(2)
+# plot_batch(5)
 
 def plot_results(folder,name):
 

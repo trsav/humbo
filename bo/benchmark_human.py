@@ -16,7 +16,9 @@ import gc
 import resource
 
 
+
 def run_behaviour(behaviour_index,aq,d,f_key,res_path):
+
 
     human_behaviours = ['expert','adversarial','trusting',0.25,0.5,0.75]
     # for this problem data
@@ -55,19 +57,19 @@ def run_behaviour(behaviour_index,aq,d,f_key,res_path):
     )
     return 
 
-if __name__ == '__main__':
-    f_keys = pd.read_csv('function_creation/f_keys.csv')['f_keys'].values
-    try:
-        aq = sys.argv[1]
-        d = int(sys.argv[2])
-        f_index = int(sys.argv[3])
+# if __name__ == '__main__':
+#     f_keys = pd.read_csv('function_creation/f_keys.csv')['f_keys'].values
+#     try:
+#         aq = sys.argv[1]
+#         d = int(sys.argv[2])
+#         f_index = int(sys.argv[3])
 
-        res_path = 'bo/benchmark_results/'
-        for b_index in range(6):
-            run_behaviour(b_index,aq,d,f_keys[f_index],res_path)
-    except:
-        aq = 'UCB'
-        d = 1
-        res_path = 'bo/plots/'
-        run_behaviour(0,aq,d,np.random.randint(0,40),res_path)
+#         res_path = 'bo/benchmark_results/'
+#         for b_index in range(6):
+#             run_behaviour(b_index,aq,d,f_keys[f_index],res_path)
+#     except:
+#         aq = 'UCB'
+#         d = 1
+#         res_path = 'bo/plots/'
+#         run_behaviour(0,aq,d,np.random.randint(0,40),res_path)
 

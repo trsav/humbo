@@ -19,7 +19,7 @@ class Function:
         self.D = self.gp["D"]
         self.dim = self.gp["dim"]
         self.bounds = self.gp["bounds"]
-        self.f_opt = self.gp["f_opt"]
+        self.f_opt = self.gp["f_opt"].item()
 
     def __call__(self, x):
         latent_dist = self.opt_posterior.predict(jnp.array([x]), train_data=self.D)
@@ -40,3 +40,89 @@ class SimpleFunction:
 
     def __call__(self, x,ax):
         return self.f(x,ax)
+    
+class Branin:
+    def __init__(self,d):
+        self.name = 'Branin'
+        self.bounds = jnp.array([[-5,10],[0,15]])
+        self.f_opt = -0.397887
+        self.dim = 2
+    
+    def __call__(self, x):
+        x1 = x[0]
+        x2 = x[1]
+        a = 1
+        b = 5.1/(4*jnp.pi**2)
+        c = 5/jnp.pi
+        r = 6
+        s = 10
+        t = 1/(8*jnp.pi)
+        f = a*(x2-b*x1**2+c*x1-r)**2+s*(1-t)*jnp.cos(x1)+s
+        return -f.item()
+    
+class Ackley:
+    def __init__(self,d):
+        self.name = 'Ackley' + str(d)
+        self.bounds = jnp.array([[-32.768,32.768]]*d)
+        self.f_opt = 0
+        self.dim = d
+    
+    def __call__(self,x):
+        d = len(x)
+        a = 20
+        b = 0.2
+        c = 2*jnp.pi
+        f = -a*jnp.exp(-b*jnp.sqrt(1/d*jnp.sum(x**2))) - jnp.exp(1/d*jnp.sum(jnp.cos(c*x))) + a + jnp.exp(1)
+        return -f.item()
+    
+class Griewank:
+    def __init__(self,d):
+        self.name = 'Griewank' + str(d)
+        self.bounds = jnp.array([[-600,600]]*d)
+        self.f_opt = 0
+        self.dim = d
+    
+    def __call__(self,x):
+        d = len(x)
+        a = 1/4000*jnp.sum(x**2)
+        b = jnp.prod(jnp.cos(x/jnp.sqrt(jnp.arange(1,d+1))))
+        f = a-b+1
+        return -f.item()
+
+class Rastrigin:
+    def __init__(self,d):
+        self.name = 'Rastrigin' + str(d)
+        self.bounds = jnp.array([[-5.12,5.12]]*d)
+        self.f_opt = 0
+        self.dim = d
+    
+    def __call__(self,x):
+        d = len(x)
+        a = 10*d
+        b = jnp.sum(x**2-10*jnp.cos(2*jnp.pi*x))
+        f = a+b
+        return -f.item()
+    
+
+class Rosenbrock:
+    def __init__(self,d):
+        self.name = 'Rosenbrock' + str(d)
+        self.bounds = jnp.array([[-5,10]]*d)
+        self.f_opt = 0
+        self.dim = d
+    def __call__(self,x):
+        d = len(x)
+        f = jnp.sum(100*(x[1:]-x[:-1]**2)**2+(x[:-1]-1)**2)
+        return -f.item()
+    
+class Powell:
+    def __init__(self,d):
+        self.name = 'Powell' + str(d)
+        self.bounds = jnp.array([[-4,5]]*d)
+        self.f_opt = 0
+        self.dim = d
+    def __call__(self,x):
+        d = len(x)
+        f = jnp.sum((x[0::4]-10*x[1::4])**2+5*(x[2::4]-x[3::4])**2+(x[1::4]-2*x[2::4])**4+10*(x[0::4]-x[3::4])**4)
+        return -f.item()
+    

@@ -14,3 +14,4 @@ bo/**/
 bo/**.pdf
 pull_results.sh
 misc
+benchmarks

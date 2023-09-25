@@ -65,17 +65,8 @@ if __name__ == '__main__':
                 run_behaviour(algo,aq,d,f_keys[f_index],res_path)
     except:
         aq = 'UCB'
-        d = 5
-        res_path = 'bo/batch_benchmark_results/'
-        algo = 'batch'
-        # algo = ''
-        # do this uing pool 
+        d = 2
+        res_path = 'bo/tests/'
+        algo = 'Local Penalization'
+        run_behaviour(algo,aq,d,f_keys[0],res_path)
 
-        # for i in range(50):
-        #     run_behaviour(algo,aq,d,i,res_path)
-
-        pool = mp.Pool(mp.cpu_count()-1)
-        res = pool.starmap(run_behaviour, [(algo,aq,d,i,res_path) for i in range(50)])
-        # results = [pool.apply(run_behaviour, args=(algo,aq,d,i,res_path)) for i in range(50)]
-        pool.close()
-        pool.join()

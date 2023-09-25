@@ -60,8 +60,9 @@ def bo(
     for i in range(len(data['data'])):
         data['data'][i]['regret'] = (f.f_opt - jnp.max(jnp.array([data['data'][j]['objective'] for j in range(i+1)]))).item()
 
+    print(data)
 
-    problem_data['f_opt'] = (f.f_opt).item()
+    problem_data['f_opt'] = (f.f_opt)
     data["problem_data"] = problem_data
     alternatives = int(problem_data["alternatives"])
     save_json(data, data_path)
@@ -456,9 +457,16 @@ def bo(
         f_eval =  f(x_opt)
         run_info["objective"] = f_eval
         run_info["id"] = str(uuid.uuid4())
-        run_info["regret"] = (f.f_opt - max(f_eval,jnp.max(outputs))).item()
+
+        # if value is array then get item if not doesn't matter 
+        regret = (f.f_opt - max(f_eval,jnp.max(outputs)))
+        if regret.__class__ != float:
+            regret = regret.item()
+        run_info["regret"] = regret
+
 
         data["data"][-1] = run_info
+        print(data)
         save_json(data, data_path)
 
         if problem_data['plotting'] == True:
