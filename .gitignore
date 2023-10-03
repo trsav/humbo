@@ -12,6 +12,6 @@ paper/
 function_creation/function.pkl
 bo/**/
 bo/**.pdf
-pull_results.sh
 misc
 benchmarks
+**/*.sh
