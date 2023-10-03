@@ -7,11 +7,11 @@ from gpjax.kernels import Matern52
 import optax as ox
 import matplotlib.pyplot as plt
 
-def create_problem(key,l,d):
+
+def create_problem(key, l, d):
     n = 200
     x_l = 0.0
     x_u = 10.0
-    
 
     if d == 1:
         x_b = jnp.linspace(x_l, x_u, n)
@@ -33,9 +33,9 @@ def create_problem(key,l,d):
     # y *= w
     # y = y[:, None]
     if d == 1:
-        D = gpx.Dataset(x_b[:, None], y[:,None])
+        D = gpx.Dataset(x_b[:, None], y[:, None])
     else:
-        D = gpx.Dataset(x_b, y[:,None])
+        D = gpx.Dataset(x_b, y[:, None])
 
     f_opt = jnp.max(y)
     kernel = gpx.kernels.Matern52()
@@ -54,9 +54,14 @@ def create_problem(key,l,d):
         key=random.PRNGKey(0),
     )
 
-    f_dict = {"posterior": opt_posterior, "D": D, "bounds": [[x_l, x_u] for i in range(d)], "f_opt": f_opt,"dim":d}
+    f_dict = {
+        "posterior": opt_posterior,
+        "D": D,
+        "bounds": [[x_l, x_u] for i in range(d)],
+        "f_opt": f_opt,
+        "dim": d,
+    }
     # with open("function_creation/function.pkl", "wb") as f:
     #     pickle.dump(f_dict, f)
 
     return f_dict
-

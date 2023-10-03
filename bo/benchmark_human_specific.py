@@ -76,7 +76,7 @@ if __name__ == '__main__':
     except:
         aq = 'UCB'
         d = 2
-        res_path = 'bo/benchmark_results_specific/'
+        res_path = 'bo/plots/'
         f_key = f_store[2]
-        run_behaviour(0,aq,f_key,res_path)
+        run_behaviour(2,aq,f_key,res_path)
 

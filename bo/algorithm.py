@@ -129,6 +129,7 @@ def bo(
 
         if problem_data['human_behaviour'] == 'trusting':
             x_opt = x_opt_aq
+            print(x_opt)
 
         else:
 
@@ -437,7 +438,8 @@ def bo(
 
         if d > 1 and problem_data['human_behaviour'] == 'trusting':
 
-            x_opt = [x.item() for x in list(x_opt)]
+            x_opt = [float(x) for  x in x_opt]
+        print(x_opt)
         
         
 

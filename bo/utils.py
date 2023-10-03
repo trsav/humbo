@@ -311,7 +311,7 @@ def UCB(x, args):
 
 
 
-def plot_regret(problem_data,axs,c,directory):
+def plot_regret(problem_data,axs,c,directory,max_it):
     
     files = os.listdir(directory)
     problem_data_list = []
@@ -357,8 +357,9 @@ def plot_regret(problem_data,axs,c,directory):
         average_regret = [f_opt_list[i] - (1/t) * np.sum(obj[:t]) for t in range(1,it+1)]
         average_regret_list.append(average_regret)
 
-    average_regret = np.mean(np.array(average_regret_list),axis=0)
-    average_regret_std = np.std(np.array(average_regret_list),axis=0)
+    regret_list = np.array(regret_list)[:,:max_it]
+    average_regret = np.mean(np.array(average_regret_list),axis=0)[:max_it]
+    average_regret_std = np.std(np.array(average_regret_list),axis=0)[:max_it]
     label = problem_data['human_behaviour']
 
     if label.__class__ != float:
@@ -370,7 +371,6 @@ def plot_regret(problem_data,axs,c,directory):
 
     try:
         x = np.arange(init,len(average_regret))
-
         axs[1].plot(x,average_regret[init:],c=c,lw=1.5,label=label)
         axs[1].fill_between(x,average_regret[init:]-average_regret_std[init:],average_regret[init:]+average_regret_std[init:],alpha=0.1,color=c,lw=0)
 
@@ -391,7 +391,7 @@ def plot_regret(problem_data,axs,c,directory):
     return 
 
 def delete_folders(problem_data):
-    directory = 'bo/batch_benchmark_results'
+    directory = 'bo/benchmark_results_specific'
     files = os.listdir(directory)
     problem_data_list = []
     for i in tqdm(range(len(files))):
@@ -405,7 +405,7 @@ def delete_folders(problem_data):
     # create dataframe from list of dictionaries 
     df = pd.DataFrame(problem_data_list)
 
-    df = df.loc[(df['algorithm'] == problem_data['algorithm']) & (df['acquisition_function'] == problem_data['acquisition_function']) & (df['lengthscale'] == problem_data['lengthscale']) & (df['dim'] == problem_data['dim'])]
+    df = df.loc[(df['function'] == problem_data['function']) & (df['acquisition_function'] == problem_data['acquisition_function'])]
 
     file_names = df['file_name'].values
     regret_list = []
@@ -431,13 +431,123 @@ def delete_folders(problem_data):
 #     delete_folders(problem_data)
 
 
-def plot_human(aq,d):
+# f_store = ['Branin']
+# for i in [2,5,10]:
+#     f_store.append('Ackley'+str(i))
+#     f_store.append('Griewank'+str(i))
+#     f_store.append('Rastrigin'+str(i))
+#     f_store.append('Rosenbrock'+str(i))
+#     f_store.append('Powell'+str(i))
+
+# for f in f_store:
+#     problem_data = {}
+#     problem_data['function'] = f
+#     problem_data["sample_initial"] = 4
+#     problem_data["gp_ms"] = 8
+#     problem_data["alternatives"] = 4
+#     problem_data["NSGA_iters"] = 100
+#     problem_data["plotting"] = False
+#     problem_data['max_iterations'] = 100
+#     problem_data['human_behaviour'] = 'trusting'
+#     problem_data['acquisition_function'] = 'UCB'
+#     delete_folders(problem_data)
+
+def plot_regret_specific(problem_data,axs,c,directory,function):
+    
+    files = os.listdir(directory)
+    problem_data_list = []
+    for i in tqdm(range(len(files))):
+        if '.' not in files[i] and files[i].split('_')[0] == function:
+            results = directory+'/'+files[i] + '/res.json'
+            # open json
+            with open(results, "r") as f:
+                data = json.load(f)
+            problem_data_list.append(data['problem_data'])
+
+    # create dataframe from list of dictionaries 
+    df = pd.DataFrame(problem_data_list)
+    df = df.loc[(df['human_behaviour'] == problem_data['human_behaviour']) & (df['acquisition_function'] == problem_data['acquisition_function'])]
+
+    file_names = df['file_name'].values
+    regret_list = []
+    obj_list = []
+    f_opt_list = []
+    for file in file_names:
+        try:
+            file = file.split('results_specific/')[1]
+        except:
+            file = file.split('results_specific_trusting/')[1]
+        file = directory + '/' +  file 
+        data_full = read_json(file+'res.json')
+        data = data_full['data']
+        f_opt = data_full['problem_data']['f_opt']
+        try:
+            obj = [d['objective'] for d in data]
+            f_opt_list.append(f_opt)
+            obj_list.append(obj)
+        except:
+            pass
+
+    init = problem_data['sample_initial']
+    full_it = problem_data['max_iterations']
+
+    average_regret_list = []
+    regret_list = []
+    for obj,i in zip(obj_list,range(len(obj_list))):
+        if len(obj) != full_it:
+            obj += [obj[-1]]*(full_it-len(obj))
+
+        it = len(obj)
+        regret = [f_opt_list[i] - np.max(obj[:t]) for t in range(1,it+1)]
+        regret_list.append(regret)
+        cumulative_regret = [f_opt_list[i] - np.sum(obj[:t]) for t in range(1,it+1)]
+        average_regret = [f_opt_list[i] - (1/t) * np.sum(obj[:t]) for t in range(1,it+1)]
+        average_regret_list.append(average_regret)
+
+    n = 100 
+    average_regret = np.mean(np.array(average_regret_list),axis=0)[:n]
+    average_regret_std = np.std(np.array(average_regret_list),axis=0)[:n]
+    regret_list = np.array(regret_list)[:,:n]
+    label = problem_data['human_behaviour']
+
+    if label.__class__ != float:
+        label = label[0].upper() + label[1:]
+    else:
+        label = '$p($Best$)=$'+str(label) 
+    # label = '$\mathbb{E}[$'+label+'$]$'
+    # captialise first letter 
+
+    try:
+        x = np.arange(init,len(average_regret))
+
+        axs[1].plot(x,average_regret[init:],c=c,lw=1.5,label=label)
+        #axs[1].fill_between(x,average_regret[init:]-average_regret_std[init:],average_regret[init:]+average_regret_std[init:],alpha=0.1,color=c,lw=0)
+
+
+        ax = axs[0]
+        regret_list = np.array(regret_list)
+        mean_instantaneous_regret = np.mean(regret_list,axis=0)
+        std_instantaneous_regret = np.std(regret_list,axis=0)
+        x = np.arange(init,len(mean_instantaneous_regret))
+        ax.plot(x,mean_instantaneous_regret[init:],c=c,lw=1.5,label=label)
+        lower = mean_instantaneous_regret[init:]-std_instantaneous_regret[init:]
+        # cut of less than 0
+        lower[lower<0] = 0
+        upper = mean_instantaneous_regret[init:]+std_instantaneous_regret[init:]
+        #ax.fill_between(x,lower,upper,alpha=0.1,color=c,lw=0)
+    except:
+        return 
+    return 
+
+
+
+def plot_human(aq,d,max_it):
     directory = 'bo/benchmark_results'
     colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
     human_behaviours = ['expert','adversarial','trusting',0.75,0.5,0.25]
 
 
-    fig,axs = plt.subplots(1,2,figsize=(10.5,3.5))
+    fig,axs = plt.subplots(1,2,figsize=(8,2.5))
 
     for i in range(len(human_behaviours)):
         # for this problem data
@@ -455,7 +565,7 @@ def plot_human(aq,d):
         problem_data['human_behaviour'] = human_behaviours[i]
         problem_data['acquisition_function'] = aq
 
-        plot_regret(problem_data,axs,colors[i],directory)
+        plot_regret(problem_data,axs,colors[i],directory,max_it)
     fs = 12
     axs[0].set_ylabel(r"Simple Regret, $r_\tau$",fontsize=fs)
     for ax in axs:
@@ -467,21 +577,90 @@ def plot_human(aq,d):
     axs[0].set_xlabel(r"Iterations, $\tau$",fontsize=fs)
     axs[1].set_xlabel(r"Iterations, $\tau$",fontsize=fs)
     axs[1].set_ylabel(r"Average Regret, ${R_\tau}/{\tau}$",fontsize=fs)
+    # add text in upper right of right plot with functon name
 
     lines, labels = axs[0].get_legend_handles_labels()
-    fig.legend(lines, labels, loc='lower center', bbox_to_anchor=(0.5, -0.025), ncol=6,frameon=False)
+    fig.legend(lines, labels, loc='lower center', bbox_to_anchor=(0.5, 0.875), ncol=6,frameon=False)
 
     l = problem_data['lengthscale']
 
     #fig.suptitle(r'Regret expectation over 50 functions, $f \sim \mathcal{GP}(\mu \equiv 0, K_M (d,\nu = '+str(l)+'))$, '+str(problem_data['alternatives'])+' alternate choices, $\mathcal{U}(x)=$'+str(aq)+r', $x \in R^'+str(problem_data['dim'])+'$',fontsize=int(fs))
     fig.tight_layout()
-    fig.subplots_adjust(bottom=0.2)
+    fig.subplots_adjust(top = 0.875)
     plt.savefig('bo/plots/overall_regret_aq_'+str(aq)+'_d_'+str(d)+'.pdf')
 
 # plot_human('EI',1)
-# plot_human('UCB',1)
-# plot_human('UCB',2)
-# plot_human('UCB',5)
+# plot_human('UCB',1,60)
+# plot_human('UCB',2,80)
+# plot_human('UCB',5,140)
+
+def plot_human_specific():
+    directory = 'bo/benchmark_results_specific'
+    colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
+    human_behaviours = ['expert','adversarial','trusting',0.75,0.5,0.25]
+
+
+    functions = ['Branin']
+    for i in [2,5,10]:
+        functions.append('Ackley'+str(i))
+        functions.append('Griewank'+str(i))
+        functions.append('Powell'+str(i))
+        functions.append('Rastrigin'+str(i))
+        functions.append('Rosenbrock'+str(i))
+
+    for function in functions:
+        fig,axs = plt.subplots(1,2,figsize=(8,2.5))
+        
+
+        for i in range(len(human_behaviours)):
+            # for this problem data
+            problem_data = {}
+            problem_data["sample_initial"] = 4
+            problem_data["gp_ms"] = 8
+            problem_data["alternatives"] = 4
+            problem_data["NSGA_iters"] = 150
+            problem_data["plotting"] = True
+            problem_data['max_iterations'] = 150
+            problem_data['human_behaviour'] = human_behaviours[i]
+            problem_data['acquisition_function'] = 'UCB'
+
+            plot_regret_specific(problem_data,axs,colors[i],directory,function)
+        fs = 12
+        axs[0].set_ylabel(r"Simple Regret, $r_\tau$",fontsize=fs)
+        for ax in axs:
+            ax.grid(True,alpha=0.5)
+            x_start = problem_data['sample_initial']
+            max_y = ax.get_ylim()[1]
+            min_y = ax.get_ylim()[0]
+            ax.plot([x_start,x_start],[min_y,max_y],c='k',ls='--',lw=1,alpha=0.5)
+        axs[0].set_xlabel(r"Iterations, $\tau$",fontsize=fs)
+        axs[1].set_xlabel(r"Iterations, $\tau$",fontsize=fs)
+        axs[1].set_ylabel(r"Average Regret, ${R_\tau}/{\tau}$",fontsize=fs)
+        # split function from number at end (2,5 or 10)
+        if function.split('1')[-1] == '0':
+            n = str(10)
+            func_name = function.split('1')[0]
+        else:
+            n = function[-1]
+            func_name = function[:-1]
+        
+
+        # text with white background in upper right of right plot with functon name
+
+        axs[1].text(0.95, 0.95, func_name + ': $d= $'+n, horizontalalignment='right',verticalalignment='top', transform=axs[1].transAxes,fontsize=fs,bbox=dict(facecolor='white',edgecolor='none',pad=0.5))
+        lines, labels = axs[0].get_legend_handles_labels()
+        fig.legend(lines, labels, loc='lower center', bbox_to_anchor=(0.5, 0.875), ncol=6,frameon=False)
+
+        fig.tight_layout()
+        fig.subplots_adjust(top = 0.875,left = 0.125)
+        
+
+        axs[0].set_yscale('log')
+
+
+        plt.savefig('bo/plots/overall_regret_'+function+'.pdf')
+
+# plot_human_specific()
 
 def plot_regret_batch(problem_data,axs,c,directory):
     
