@@ -12,6 +12,7 @@ with open("misc/api_key.txt") as f:
 def expert_reccomendation(x_names,x,u,data,subject,objective_description,model,temperature):
 
     context =  " You are an expert in " + subject + "."
+    context += " You are tasked with selecting the best solution from a set of " + str(len(x)) + " alternative solutions to achieve the goal of " + objective_description + "."
     context += " A set of alternative solutions to achieve this goal is provided to you."
     context += " What follows is a description of what is provided to you for each alternate solution: \n\n"
 
@@ -25,29 +26,48 @@ def expert_reccomendation(x_names,x,u,data,subject,objective_description,model,t
     context += " You must be completely neutral as to whether the physical knowledge you understand regarding the solutions outweighs the utility values, or vice versa."
     context += " You must think clearly, logically, and step-by-step to select the best option from the alternative solutions provided, selecting that one that you think will optimsation objective."
 
-    # previous evaluations 
-    # objective description
 
     user_prompt = f'''
     Variables (x): {''.join([x_names[i]+', ' for i in range(len(x_names)-1)])+ "and " + x_names[-1]}\n
     '''
+    # rounding solutions to save tokens
+    round = 3
+    for i in range(len(x)):
+        for j in range(len(x[i])):
+            x[i][j] = np.round(x[i][j],round)
+
     for i in range(len(x)):
         sol_str = ''.join([x_names[j]+': '+ str(x[i][j]) +', ' for j in range(len(x[i]))])
-        user_prompt += f'''Solution {str(i+1)}: {sol_str} (x = {x[i]}), Utilty value, U(x) = {u[i]} \n'''
+        user_prompt += f'''Solution {str(i+1)}: {sol_str}, Utilty value, U(x) = {u[i]} \n'''
     user_prompt += '\nNote that higher values of U(x) are more attractive, and theoretically better choices.\n'
     objective = '\nOptimisation Objective: '  + objective_description
     user_prompt += objective + '\n'
 
     prev_data_len = len(data['previous_iterations'])
+
     user_prompt += f'''
     Below is a JSON object containing the previous {str(prev_data_len)} iterations of the optimisation process, the inputs are respective to the variables described above, and the outputs are the objective function values.
+    This may include your previous justifiction given for selecting a datapoint. Your previous reasoning may or may not be correct, but it is important to consider the reasoning you gave for your previous selections.
     '''
+    # round every value in data to save tokens
+    clean_data = []
+    for i in range(prev_data_len):
+        x_clean = {}
+        for j in range(len(data['previous_iterations'][i]['inputs'])):
+            x_clean[x_names[j]] = np.round(data['previous_iterations'][i]['inputs'][j],round)
+
+        clean_data.append({'inputs':x_clean,'objective':np.round(data['previous_iterations'][i]['objective'],round)})
+        try:
+            clean_data[i]['reason'] = data['previous_iterations'][i]['reason']
+        except:
+            continue
+    data = {'previous_iterations':clean_data}
     user_prompt += json.dumps(data) + '\n'
 
     user_prompt += '''
     Provide your response as a JSON object ONLY. Do not include any additional text.
     The JSON object must contain the key "choice" and the value as the index of the best alternative. 
-    The other key is named 'reason' and must be a brief and concise explanation of your reasoning, with respect to the additional physical knowledge you have considered.
+    The other key is named 'reason' and must be a brief and concise explanation of your reasoning (approx 50 words), with respect to the additional physical knowledge you have considered.
     '''
     print(user_prompt)
     messages=[
@@ -65,17 +85,27 @@ def expert_reccomendation(x_names,x,u,data,subject,objective_description,model,t
 
     return response_message
 
-x_names = ["Temperature", "Pressure", "Catalyst Concentration"]
-expertise = "reaction engineering & chemistry"
-obj_desc =  'Maximise the yield of B within a chemical reaction where A -> B -> C. The first reaction is exothermic, and the second is endothermic.'
-x = [[0.5,0.2,0.7],[0.8,0.1,0.1],[0.2,0.5,0.3]]
-u = [0.8,1.5,0.2]
-data_full = read_json('bo/reaction_conditions_results/0c1d1ee8-1e7f-4562-9be0-25e3ae28b8f9/res.json')
-round = 4 # round to save tokens
-previous_iterations = 6
-temperature = 0.1
-model = 'gpt-3.5-turbo-0613'
-data = {'previous_iterations':[{'x':list(np.round(data_full['data'][i]['inputs'],round)),'y':float(np.round(data_full['data'][i]['objective'],round))} for i in reversed(range(min(previous_iterations,len(data_full['data']))))]}
-response = expert_reccomendation(x_names,x,u,data,expertise,obj_desc,model,temperature)
-print(response)
-choice = response.split('''"choice": ''')[-1].split(',')[0]
+# todo integrate with bo, and add alternatives to res. (will need to process this to not provide these to reccomender)
+# todo so add "alternatives" and "reason" to data
+
+# x_names = ["Temperature", "Pressure", "Catalyst Concentration"]
+# expertise = "Reaction engineering & chemistry"
+# obj_desc =  'Maximise the yield of B within a chemical reaction where A -> B -> C. The first reaction is exothermic, and the second is endothermic.'
+
+
+# alternatives = 3
+# round = 3 # round to save tokens
+# x = [list(np.round(np.random.uniform(0,1,3),round)) for i in range(alternatives)]
+# u = list(np.round(np.random.uniform(0,1,3),round))
+
+
+# data_full = read_json('misc/synthetic_data.json')
+# previous_iterations = 5
+# temperature = 0.1
+# model = 'gpt-3.5-turbo-0613'
+# # data is the last previous iterations 
+# data = {'previous_iterations':data_full['data'][-previous_iterations:]}
+# response = json.loads(expert_reccomendation(x_names,x,u,data,expertise,obj_desc,model,temperature))
+# print(response)
+# print(response['choice'])
+# print(response['reason'])
