@@ -225,7 +225,7 @@ def train_gp(inputs, outputs, ms):
             objective=negative_mll,
             train_data=D,
             optim=ox.adam(learning_rate=0.01),
-            num_iters=750,
+            num_iters=2000,
             safe=True,
             key=key,
         )

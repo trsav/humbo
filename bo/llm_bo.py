@@ -53,7 +53,7 @@ def llmbo(
     for i in range(len(data['data'])):
         data['data'][i]['regret'] = (f.f_opt - jnp.max(jnp.array([data['data'][j]['objective'] for j in range(i+1)]))).item()
 
-    print(data)
+    # print(data)
 
     problem_data['f_opt'] = (f.f_opt)
     data["problem_data"] = problem_data
@@ -279,15 +279,21 @@ def llmbo(
                 x_names = problem_data['x_names']
                 expertise = problem_data['expertise']
                 obj_desc = problem_data['objective_description']
-                aq_list = [float(f_aq(jnp.array(x_alternates[i]), util_args)) for i in range(alternatives)]
+                aq_list = np.array([float(-f_aq(jnp.array(x_alternates[i]), util_args)) for i in range(alternatives)])
+                aq_list += np.abs(np.min(aq_list))
+                aq_list = aq_list.tolist()
+                aq_list = [np.round(aq_list[i],3) for i in range(alternatives)]
                 previous_iterations = 5
 
-                temperature = 0.1
-                model = 'gpt-3.5-turbo-0613'
+                temperature = 0.2
+                if problem_data['gpt'] == 3.5:
+                    model = 'gpt-3.5-turbo-0613'
+                elif problem_data['gpt'] == 4:
+                    model = 'gpt-4-0613'
                 # data is the last previous iterations 
                 prompt_data = {'previous_iterations':data['data'][-previous_iterations:]}
-                response = json.loads(expert_reccomendation(x_names,x_alternates,aq_list,prompt_data,expertise,obj_desc,model,temperature))
-                print(response)
+                prev_just = problem_data['include_previous_justification']
+                response = json.loads(expert_reccomendation(x_names,x_alternates,aq_list,prompt_data,expertise,obj_desc,model,temperature,prev_just))
                 x_opt = np.array([x_alternates[response['choice']-1]])
             
             if problem_data['human_behaviour'] == 'expert':

@@ -16,44 +16,27 @@ import gc
 import resource
 
 
-def run_behaviour(behaviour,aq,f,res_path,problem_data):
-
-    problem_data['function'] = f.name
-    problem_data["sample_initial"] = 8
-    problem_data["gp_ms"] = 8
-    problem_data["alternatives"] = 4
-    problem_data["NSGA_iters"] = 200
-    problem_data["plotting"] = False
-    problem_data['max_iterations'] = 100
-    #problem_data['lengthscale'] = 0.8
-    problem_data['dim'] = f.dim
-    # at a given human behaviour
-    problem_data['human_behaviour'] = behaviour
-    problem_data['acquisition_function'] = aq
+def run_behaviour(f,res_path,problem_data):
 
     aqs = {'EI':EI,'UCB':UCB}
-
     file = f.name
-
     path = res_path + file + "/"
-
     problem_data['time_created'] = str(datetime.datetime.now())
     problem_data['file_name'] = path
-    # problem_data['function_key'] = str(f_key)
 
     llmbo(
         f,
-        aqs[aq],
+        aqs[problem_data['acquisition_function']],
         problem_data
     )
     return 
 
-
-f = Rosenbrock(5)
+d = 5
+f = Griewank(d)
 repeats = 8
-x_names = ["x1", "x2", "x3", "x4", "x5"]
+x_names = ["x"+str(i) for i in range(d)]
 expertise = 'Optimising Benchmark Functions'
-objective_desc = "Maximise the negative Rosenbrock function."
+objective_desc = "Maximise the negative "+f.name+" function."
 
 human_behaviours = ['llmbo','expert','trusting',0.25]
 if __name__ == '__main__':
@@ -64,11 +47,27 @@ if __name__ == '__main__':
         for behav in human_behaviours:
             run_behaviour(behav,aq,f,res_path)
     except:
-        aq = 'UCB'
+
         res_path = 'bo/benchmark_llmbo_results/'
         problem_data_init = {}
         problem_data_init['x_names'] = x_names
         problem_data_init['expertise'] = expertise
         problem_data_init['objective_description'] = objective_desc
-        run_behaviour('llmbo',aq,f,res_path,problem_data_init)
+        problem_data_init['function'] = f.name
+        problem_data_init["sample_initial"] = 8
+        problem_data_init["gp_ms"] = 8
+        problem_data_init["alternatives"] = 4
+        problem_data_init["NSGA_iters"] = 200
+        problem_data_init["plotting"] = False
+        problem_data_init['max_iterations'] = 100
+        problem_data_init['dim'] = f.dim
+        problem_data_init['human_behaviour'] = 'llmbo'
+        problem_data_init['acquisition_function'] = 'UCB'
+        problem_data_init['include_previous_justification'] = True 
+        problem_data_init['gpt'] = 3.5
+        run_behaviour(f,res_path,problem_data_init)
+
+# benchmark previous justifications (yes/no)
+# benchmark LLM (gpt3.5/gpt4)
+# benchmark different problems and what complexity the benefits reduce
 
