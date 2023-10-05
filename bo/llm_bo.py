@@ -38,13 +38,14 @@ def llmbo(
 
     for sample in samples:
         
-
+        
         res = f(sample)
         run_info = {
             "id": str(uuid.uuid4()),
             "inputs": list(sample),
             "objective": res
         }
+
         data["data"].append(run_info)
 
         save_json(data, data_path)
@@ -276,6 +277,14 @@ def llmbo(
             if problem_data['human_behaviour'] == 'llmbo':
                 x_alternates = list(jnp.split(x_best_utopia, alternatives))
                 x_alternates = [x_alternates[i].tolist() for i in range(alternatives)]
+
+                # unnormalise x_alternatives for LLM 
+                # bounds are 0-1 but f.var_bounds contains real
+                for i in range(alternatives):
+                    for j in range(len(x_alternates[i])):
+                        x_alternates[i][j] = x_alternates[i][j] * (f.var_bounds[j][1] - f.var_bounds[j][0]) + f.var_bounds[j][0]
+
+
                 x_names = problem_data['x_names']
                 expertise = problem_data['expertise']
                 obj_desc = problem_data['objective_description']
@@ -285,7 +294,7 @@ def llmbo(
                 aq_list = [np.round(aq_list[i],3) for i in range(alternatives)]
                 previous_iterations = 5
 
-                temperature = 0.2
+                temperature = 0.5
                 if problem_data['gpt'] == 3.5:
                     model = 'gpt-3.5-turbo-0613'
                 elif problem_data['gpt'] == 4:
@@ -293,7 +302,7 @@ def llmbo(
                 # data is the last previous iterations 
                 prompt_data = {'previous_iterations':data['data'][-previous_iterations:]}
                 prev_just = problem_data['include_previous_justification']
-                response = json.loads(expert_reccomendation(x_names,x_alternates,aq_list,prompt_data,expertise,obj_desc,model,temperature,prev_just))
+                response = json.loads(expert_reccomendation(f,x_names,x_alternates,aq_list,prompt_data,expertise,obj_desc,model,temperature,prev_just))
                 x_opt = np.array([x_alternates[response['choice']-1]])
             
             if problem_data['human_behaviour'] == 'expert':
@@ -466,31 +475,28 @@ def llmbo(
         print("Optimal Solution: ", x_opt)
 
 
-        run_info = {
-            "id": "running",
-            "inputs": list(x_opt),
-            "pred_mu": np.float64(mu_opt),
-            "pred_sigma": np.float64(np.sqrt(var_opt)),
-        }
-        
-        data["data"].append(run_info)
-        save_json(data, data_path)
-
         f_eval =  f(x_opt)
+        run_info = {
+            "inputs": list(x_opt),
+        }
+
         run_info["objective"] = f_eval
         run_info["id"] = str(uuid.uuid4())
+        run_info["pred_mu"] = np.float64(mu_opt)
+        run_info["pred_sigma"] = np.float64(np.sqrt(var_opt))
+
         if problem_data['human_behaviour'] == 'llmbo':
             run_info['reason'] = response
 
-        # if value is array then get item if not doesn't matter 
+        
         regret = (f.f_opt - max(f_eval,jnp.max(outputs)))
         if regret.__class__ != float:
             regret = regret.item()
         run_info["regret"] = regret
 
+        data["data"].append(run_info)
 
-        data["data"][-1] = run_info
-        print(data)
+
         save_json(data, data_path)
 
         if problem_data['plotting'] == True:

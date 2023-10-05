@@ -9,7 +9,7 @@ with open("misc/api_key.txt") as f:
     openai.api_key = f.readline()
 
 
-def expert_reccomendation(x_names,x,u,data,subject,objective_description,model,temperature,prev_justifications):
+def expert_reccomendation(f,x_names,x,u,data,subject,objective_description,model,temperature,prev_justifications):
 
     context =  " You are an expert in " + subject + "."
     context += " You are tasked with selecting the best solution from a set of " + str(len(x)) + " alternative solutions to achieve the goal of " + objective_description + "."
@@ -50,15 +50,19 @@ def expert_reccomendation(x_names,x,u,data,subject,objective_description,model,t
     '''
     if prev_justifications == True:
         user_prompt += '''
-        This may include your previous justifiction given for selecting a datapoint. Your previous reasoning may or may not be correct, but it is important to consider the reasoning you gave for your previous selections.
+        This may include your previous justifiction given for selecting a datapoint. 
+        Your previous reasoning may or may not be correct, but it is important to consider the reasoning you gave for your previous selections.
         You may need to adapt your old reasoning in light of new information. 
+        Please do not repeat a justification unless you are sure it is correct, think creatively and logically about the problem.
         '''
     # round every value in data to save tokens
     clean_data = []
     for i in range(prev_data_len):
         x_clean = {}
         for j in range(len(data['previous_iterations'][i]['inputs'])):
-            x_clean[x_names[j]] = np.round(data['previous_iterations'][i]['inputs'][j],round)
+            x_val = (data['previous_iterations'][i]['inputs'][j])
+            x_val = np.round(x_val * (f.var_bounds[j][1] - f.var_bounds[j][0]) + f.var_bounds[j][0],round)
+            x_clean[x_names[j]] = x_val
 
         clean_data.append({'inputs':x_clean,'objective':np.round(data['previous_iterations'][i]['objective'],round)})
         if prev_justifications == True:
@@ -87,5 +91,6 @@ def expert_reccomendation(x_names,x,u,data,subject,objective_description,model,t
     )
 
     response_message = response["choices"][0]["message"]['content']
-
+    print(response_message)
     return response_message
+
