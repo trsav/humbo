@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 def create_problem(key, l, d):
     n = 200
     x_l = 0.0
-    x_u = 10.0
+    x_u = 1.0
 
     if d == 1:
         x_b = jnp.linspace(x_l, x_u, n)

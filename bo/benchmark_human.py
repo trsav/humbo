@@ -26,10 +26,10 @@ def run_behaviour(behaviour_index,aq,d,f_key,res_path):
     problem_data["sample_initial"] = 4
     problem_data["gp_ms"] = 8
     problem_data["alternatives"] = 4
-    problem_data["NSGA_iters"] = 75
+    problem_data["NSGA_iters"] = 400
     problem_data["plotting"] = True
     problem_data['max_iterations'] = 75
-    problem_data['lengthscale'] = 0.3
+    problem_data['lengthscale'] = 0.04
     #problem_data['lengthscale'] = 0.8
     problem_data['dim'] = d
     # at a given human behaviour
@@ -56,20 +56,25 @@ def run_behaviour(behaviour_index,aq,d,f_key,res_path):
         problem_data
     )
     return 
+f_count = 50 
+behavs = 6
 
-# if __name__ == '__main__':
-#     f_keys = pd.read_csv('function_creation/f_keys.csv')['f_keys'].values
-#     try:
-#         aq = sys.argv[1]
-#         d = int(sys.argv[2])
-#         f_index = int(sys.argv[3])
+if __name__ == '__main__':
+    f_keys = pd.read_csv('function_creation/f_keys.csv')['f_keys'].values
+    try:
+        aq = 'UCB'
+        d = int(sys.argv[1])
+        array_index = int(sys.argv[2])
+        # split f_index into f_key and repeat
+        b_index = array_index // f_count
+        f_index = array_index % f_count
 
-#         res_path = 'bo/benchmark_results/'
-#         for b_index in range(6):
-#             run_behaviour(b_index,aq,d,f_keys[f_index],res_path)
-#     except:
-#         aq = 'UCB'
-#         d = 1
-#         res_path = 'bo/plots/'
-#         run_behaviour(0,aq,d,np.random.randint(0,40),res_path)
+        res_path = 'bo/benchmark_results/'
+        run_behaviour(b_index,aq,d,f_keys[f_index],res_path)
+
+    except:
+        aq = 'UCB'
+        d = 1
+        res_path = 'bo/plots/'
+        run_behaviour(0,aq,d,np.random.randint(0,40),res_path)
 

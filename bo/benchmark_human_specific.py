@@ -24,13 +24,13 @@ def run_behaviour(behaviour_index,aq,f,res_path):
     problem_data = {}
     problem_data['function'] = f.name
     problem_data["sample_initial"] = 4
-    problem_data["gp_ms"] = 8
+    problem_data["gp_ms"] = 16
     problem_data["alternatives"] = 4
-    problem_data["NSGA_iters"] = 150
+    problem_data["NSGA_iters"] = 400
     problem_data["plotting"] = False
-    problem_data['max_iterations'] = 100
+    problem_data['max_iterations'] = 80
     #problem_data['lengthscale'] = 0.8
-    problem_data['dim'] = d
+    problem_data['dim'] = f.dim
     # at a given human behaviour
     problem_data['human_behaviour'] = human_behaviours[behaviour_index]
     problem_data['acquisition_function'] = aq
@@ -51,7 +51,6 @@ def run_behaviour(behaviour_index,aq,f,res_path):
     )
     return 
 
-
 f_store = [Branin(2)]
 for i in [2,5,10]:
     f_store.append(Ackley(i))
@@ -60,9 +59,7 @@ for i in [2,5,10]:
     f_store.append(Rosenbrock(i))
     f_store.append(Powell(i))
 
-repeats = 8
-
-
+repeats = 16
 if __name__ == '__main__':
     try:
         f_index = int(sys.argv[1])
@@ -71,8 +68,8 @@ if __name__ == '__main__':
         repeat = f_index % repeats
         aq = 'UCB'
         res_path = 'bo/benchmark_results_specific/'
-        for b_index in range(6):
-            run_behaviour(b_index,aq,f_store[f_key],res_path)
+        b_index = int(sys.argv[2])
+        run_behaviour(b_index,aq,f_store[f_key],res_path)
     except:
         aq = 'UCB'
         d = 2
