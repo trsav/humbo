@@ -27,7 +27,7 @@ def run_behaviour(behaviour_index,aq,d,f_key,res_path):
     problem_data["gp_ms"] = 8
     problem_data["alternatives"] = 4
     problem_data["NSGA_iters"] = 400
-    problem_data["plotting"] = True
+    problem_data["plotting"] = False
     problem_data['max_iterations'] = 75
     problem_data['lengthscale'] = 0.04
     #problem_data['lengthscale'] = 0.8
@@ -69,7 +69,6 @@ if __name__ == '__main__':
         b_index = array_index // f_count
         f_index = array_index % f_count
 
-<<<<<<< HEAD
         res_path = 'bo/benchmark_results/'
         run_behaviour(b_index,aq,d,f_keys[f_index],res_path)
 
@@ -78,14 +77,4 @@ if __name__ == '__main__':
         d = 1
         res_path = 'bo/plots/'
         run_behaviour(0,aq,d,np.random.randint(0,40),res_path)
-=======
-#         res_path = 'bo/benchmark_results/'
-#         for b_index in range(6):
-#             run_behaviour(b_index,aq,d,f_keys[f_index],res_path)
-#     except:
-aq = 'UCB'
-d = 1
-res_path = 'bo/plots/'
-run_behaviour(0,aq,d,np.random.randint(0,40),res_path)
->>>>>>> 244a0fd0fb59ef7345449a9d59781973e7d5686e
 

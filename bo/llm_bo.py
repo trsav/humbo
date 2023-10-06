@@ -64,8 +64,6 @@ def llmbo(
     iteration = len(data["data"]) - 1
     while len(data['data']) < problem_data['max_iterations']:
         
-        if problem_data['plotting'] == True:
-            os.mkdir(path + "/" + str(iteration + 1))
             
         start_time = time.time()
         data = read_json(data_path)
@@ -77,17 +75,6 @@ def llmbo(
 
 
         aq = vmap(f_aq, in_axes=(0, None))
-        if problem_data['dim'] == 1 and problem_data['plotting'] == True:
-            n_test = 1000
-            x_test = jnp.linspace(x_bounds[0][0], x_bounds[0][1], n_test).reshape(-1, 1)
-            y_true = f.eval_vector(x_test[:, 0])
-            aq_vals_list = aq(x_test, util_args)
-            posterior = gp["posterior"]
-            D = gp["D"]
-            latent_dist = posterior.predict(x_test, train_data=D)
-            predictive_dist = posterior.likelihood(latent_dist)
-            mean = predictive_dist.mean()
-            cov = jnp.sqrt(predictive_dist.variance())
 
         # optimising the aquisition of inputs, disregarding fidelity
         print("Optimising utility function...")
@@ -198,81 +185,6 @@ def llmbo(
             best_D_sol = np.argmin(D)
             utopia_sol = np.argmin(distances)
 
-            if problem_data['plotting'] == True:
-                fig, ax = plt.subplots(1, 1, figsize=(7, 3.5))
-                arg_sort = np.argsort(-F[:,0])
-                ax.scatter(
-                    -F[arg_sort, 0],
-                    -F[arg_sort, 1],
-                    c= 'k',
-                    marker='+',
-                    lw=1,
-                    label='Pareto Solutions'
-                )
-                ax.scatter(
-                    -F[best_aq_sol, 0],
-                    -F[best_aq_sol, 1],
-                    s=50,
-                    c="#FFC107",
-                    label="Best Utility Sum",
-                )
-                ax.scatter(
-                    -F[best_D_sol, 0],
-                    -F[best_D_sol, 1],
-                    s=50,
-                    c="#D81B60",
-                    label="Best Joint Variability",
-                )
-                ax.scatter(-F[utopia_sol, 0], -F[utopia_sol, 1], s=50, c="k", label="Knee-solution")
-                ax.set_xlabel("Sum of Utility Function Values")
-                ax.set_ylabel("Joint Variability")
-                ax.spines["right"].set_visible(False)
-                ax.spines["top"].set_visible(False)
-                # legend below plot
-                ax.legend(frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2)
-                fig.tight_layout()
-                fig.savefig(path + "/" + str(iteration + 1) + "/pareto.pdf")
-                plt.close()
-
-            if problem_data['plotting'] == True:
-
-
-
-
-                fig,axs = plt.subplots(1,alternatives+1,figsize=(10,4))
-                for i in range(len(axs)-2):
-                    axs[i].get_shared_y_axes().join(axs[i], axs[i+1])
-                for i in range(len(axs)-1):
-                    m,sigma = inference(gp, jnp.array([x_best_utopia[i]]))
-                    sigma = np.sqrt(sigma)
-                    p_y = tfd.Normal(loc=m, scale=sigma)
-                    y = np.linspace(m-3*sigma,m+3*sigma,100)
-                    p_y_vals = p_y.prob(y)
-                    for j in range(len(axs)-1):
-                        axs[j].fill_betweenx(y[:,0],[0 for i in range(100)],p_y_vals[:,0],alpha=0.05,color='k')
-                    axs[i].plot(p_y_vals,y,c='k',lw=1)
-                    axs[i].fill_betweenx(y[:,0],[0 for i in range(100)],p_y_vals[:,0],alpha=0.2,color='k')
-                    axs[i].plot([0,p_y.prob(m)[0]],[m,m],c='k',lw=1,ls='--')
-                    axs[i].set_title('Choice ' + str(i+1))
-                    axs[i].set_xlabel(r"$p(f(x))$")
-
-                axs[0].set_ylabel(r"$f(x)$")
-                bar_labels = [str(i+1) for i in range(alternatives)]
-                aq_vals = [-aq(jnp.array([x_best_utopia[i]]), util_args).item() for i in range(alternatives)]
-                cols = ['k' for i in range(alternatives)]
-                axs[-1].bar(bar_labels,aq_vals,color=cols,alpha=0.5,edgecolor='k',lw=1)
-                axs[-1].set_ylabel(r"$\mathcal{U}(x)$")
-                axs[-1].set_xlabel("Choices")
-
-
-                for ax in axs:
-                    ax.spines["top"].set_visible(False)
-                    ax.spines["right"].set_visible(False)
-
-                fig.tight_layout()
-                fig.savefig(path + "/" + str(iteration + 1) + "/choices.pdf")
-                plt.close() 
-            
 
             if problem_data['human_behaviour'] == 'llmbo':
                 x_alternates = list(jnp.split(x_best_utopia, alternatives))
@@ -339,123 +251,6 @@ def llmbo(
 
         if d == 1:
             x_opt = [x_opt[0].item()]
-        if problem_data['plotting'] == True and problem_data['dim'] == 1:
-            fig, axs = plt.subplots(2, 1, figsize=(8, 4))
-            ax = axs[0]
-            max_f = np.argmax(y_true)
-            ax.plot(x_test[:, 0], y_true, c="k", lw=1, label="Function", alpha=0.5)
-            ax.scatter(
-                x_test[max_f],
-                y_true[max_f],
-                c="k",
-                s=40,
-                marker="+",
-                label="Global Optimum",
-            )
-            ax.scatter(inputs, outputs, c="k", s=20, lw=0, label="Data")
-            # remove top and right spines
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
-            ax.set_xticks([])
-            ax.set_xlabel("$x$")
-            ax.set_ylabel("$f(x)$")
-            ax.plot(x_test[:, 0], mean, c="k", ls="--", lw=1, label="GP Posterior")
-            ax.fill_between(
-                x_test[:, 0],
-                mean + 2 * cov,
-                mean - 2 * cov,
-                alpha=0.05,
-                color="k",
-                lw=0,
-                label="95% Confidence",
-            )
-            # place legend below plot
-            ax.legend(
-                frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=5
-            )
-
-            ax = axs[1]
-            aq_vals_list = -aq_vals_list
-            ax.plot(
-                x_test[:, 0],
-                aq_vals_list,
-                c="k",
-                lw=1,
-                label="Utility Function",
-                zorder=-1,
-            )
-            ax.fill_between(
-                x_test[:, 0],
-                min(aq_vals_list),
-                aq_vals_list,
-                alpha=0.05,
-                color="k",
-                lw=0,
-            )
-            ax.set_xlabel("$x$")
-            ax.set_ylabel("$\mathcal{U}(x)$")
-            ax.set_yticks([])
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
-            # ax.scatter(x_opt, -f_aq(x_opt,(gp)), c="k", s=20, lw=0, label="Optimum")
-
-            if problem_data['human_behaviour'] != 'trusting':
-                for i in range(alternatives-1):
-                    ax.scatter(
-                        x_best_d[i],
-                        -f_aq(x_best_d[i], util_args),
-                        c="#D81B60",
-                        s=40,
-                        label="Best Variability Set" if i == 0 else None,
-                    )
-                    ax.scatter(
-                        x_best_utopia[i],
-                        -f_aq(x_best_utopia[i], util_args),
-                        c="k",
-                        s=40,
-                        label="Knee Set" if i == 0 else None,
-                    )
-                    ax.text(
-                    x_best_utopia[i],
-                    -f_aq(x_best_utopia[i], util_args) + 0.25,
-                    "Choice "+str(i+1),
-                    ha="center",
-                    va="bottom",
-                    fontsize=8,
-                )
-
-
-            ax.scatter(
-                x_opt_aq,
-                -f_aq(x_opt_aq, util_args),
-                c="#FFC107",
-                s=40,
-                label='Optimum'
-            )
- 
-            # text of 'choice x' about this scatter
-            ax.text(
-                x_opt_aq,
-                -f_aq(x_opt_aq, util_args) + 0.25,
-                "Choice "+str(alternatives),
-                ha="center",
-                va="bottom",
-                fontsize=8,
-            )
-
-
-
-
-            u_opt = -f_aq(x_opt, util_args).item()
-            ax.plot([x_opt, x_opt], [u_opt, min(aq_vals_list)], c="k", lw=1, ls="--",label='Selected')
-
-            ax.legend(
-                frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.45), ncol=5,fontsize=8
-            )
-            fig.tight_layout()
-            plt.savefig(path + "/" + str(iteration + 1) + "/utility.pdf")
-            plt.savefig(path + "/latest.pdf")
-            plt.close()
 
         iteration += 1
 
@@ -499,33 +294,3 @@ def llmbo(
 
         save_json(data, data_path)
 
-        if problem_data['plotting'] == True:
-
-            regret_list = [d['regret'] for d in data['data']]
-            init = problem_data['sample_initial']
-            it = len(regret_list)
-            fig,axs = plt.subplots(1,2,figsize=(10,4))
-            fs = 16
-            ax = axs[0]
-            ax.plot(np.arange(it),regret_list,c='k',lw=1)
-            axs[0].set_ylabel(r"$r_\tau$",fontsize=fs)
-            axs[0].set_xlabel(r"$\tau$",fontsize=fs)
-            axs[1].set_ylabel(r"$\frac{R_\tau}{\tau}$",fontsize=fs)
-            obj = [d['objective'] for d in data['data']]
-            cumulative_regret = [t*f.f_opt - np.sum(obj[:t]) for t in range(1,it+1)]
-            average_regret = [f.f_opt - (1/t) * np.sum(obj[:t]) for t in range(1,it+1)]
-
-            ax = axs[1]
-            ax.set_xlabel(r"$\tau$",fontsize=fs)
-
-            ax.plot(np.arange(it),average_regret,c='k',lw=1)
-            ax.plot([0,it],[0,0],c='k',lw=1,ls='--',label='Reference')
-
-            ax.legend(frameon=False)
-
-            for ax in axs:
-                ax.spines['top'].set_visible(False)
-                ax.spines['right'].set_visible(False)
-            fig.tight_layout()
-            fig.savefig(path + "/regret.pdf")
-            plt.close()

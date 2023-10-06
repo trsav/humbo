@@ -32,34 +32,71 @@ def run_behaviour(f,res_path,problem_data):
     )
     return 
 
-f = P3HT(1)
+def create_P3HT():
+    f = P3HT(8)
+    return f 
+
+def create_AgNP():
+    f = AgNP(8)
+    return f
+
+def create_Perovskite():
+    f = Perovskite(8)
+    return f
+
+def create_AutoAM():
+    f = AutoAM(8)
+    return f
+
+def create_CrossedBarrel():
+    f = CrossedBarrel(1)
+    return f
+
+f_list = [create_P3HT,create_AgNP,create_Perovskite,create_AutoAM,create_CrossedBarrel]
+
+
+
+repeats = 8 
+f_count = 5 
 
 if __name__ == '__main__':
 
+    human_behaviours = ['llmbo',0.33,'expert','trusting']
 
     res_path = 'bo/benchmark_llmbo_results/'
 
+    array_index = int(sys.argv[1])
+    f_key = array_index // repeats
+    repeat = array_index % repeats
+    
+    b_index = int(sys.argv[2]) # per job script 
+
+    f = f_list[f_key]()
     
     problem_data = {}
     problem_data["sample_initial"] = 8
+    problem_data['repeat'] = repeat
     problem_data["gp_ms"] = 8
-    problem_data["alternatives"] = 4
-    problem_data["NSGA_iters"] = 40
-    problem_data["plotting"] = False
-    problem_data['max_iterations'] = 100
+    problem_data["alternatives"] = 3
+    problem_data["NSGA_iters"] = 500
+    problem_data['max_iterations'] = 60
     problem_data['acquisition_function'] = 'UCB'
     problem_data['x_names'] = f.x_names
     problem_data['expertise'] = f.expertise
     problem_data['objective_description'] = f.objective_description
     problem_data['function'] = f.name
     problem_data['dim'] = f.dim
-    problem_data['human_behaviour'] = 'llmbo'
+    problem_data['human_behaviour'] = human_behaviours[b_index]
     problem_data['include_previous_justification'] = True 
     problem_data['gpt'] = 3.5
+
     run_behaviour(f,res_path,problem_data)
 
-# todo benchmark previous justifications (yes/no)
-# todo benchmark different problems and what complexity the benefits reduce
+    if human_behaviours[b_index] == 'llmbo':
+        problem_data['human_behaviour'] = 'llmbo_no_prev_justification'
+        problem_data['include_previous_justification'] = False
+        run_behaviour(f,res_path,problem_data)
+
 
 
 
