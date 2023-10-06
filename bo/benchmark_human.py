@@ -29,7 +29,7 @@ def run_behaviour(behaviour_index,aq,d,f_key,res_path):
     problem_data["NSGA_iters"] = 75
     problem_data["plotting"] = True
     problem_data['max_iterations'] = 75
-    problem_data['lengthscale'] = 0.3
+    problem_data['lengthscale'] = 0.04
     #problem_data['lengthscale'] = 0.8
     problem_data['dim'] = d
     # at a given human behaviour
@@ -68,8 +68,8 @@ def run_behaviour(behaviour_index,aq,d,f_key,res_path):
 #         for b_index in range(6):
 #             run_behaviour(b_index,aq,d,f_keys[f_index],res_path)
 #     except:
-#         aq = 'UCB'
-#         d = 1
-#         res_path = 'bo/plots/'
-#         run_behaviour(0,aq,d,np.random.randint(0,40),res_path)
+aq = 'UCB'
+d = 1
+res_path = 'bo/plots/'
+run_behaviour(0,aq,d,np.random.randint(0,40),res_path)
 
