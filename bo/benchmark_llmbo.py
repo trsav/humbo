@@ -36,12 +36,15 @@ f = P3HT(1)
 
 if __name__ == '__main__':
 
+
     res_path = 'bo/benchmark_llmbo_results/'
+
+    
     problem_data = {}
     problem_data["sample_initial"] = 8
     problem_data["gp_ms"] = 8
     problem_data["alternatives"] = 4
-    problem_data["NSGA_iters"] = 100
+    problem_data["NSGA_iters"] = 40
     problem_data["plotting"] = False
     problem_data['max_iterations'] = 100
     problem_data['acquisition_function'] = 'UCB'

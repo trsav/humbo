@@ -22,6 +22,7 @@ class Function:
         self.f_opt = self.gp["f_opt"].item()
 
     def __call__(self, x):
+        # unnormalise
         latent_dist = self.opt_posterior.predict(jnp.array([x]), train_data=self.D)
         predictive_dist = self.opt_posterior.likelihood(latent_dist)
         f = predictive_dist.mean()
