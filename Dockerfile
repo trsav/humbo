@@ -10,6 +10,7 @@ RUN apt-get install -y texlive-latex-base dvipng texlive-latex-extra texlive-fon
 RUN mkdir llmbo
 WORKDIR /llmbo
 
+# replace with github clone later 
 COPY . .
 
 

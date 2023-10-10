@@ -647,7 +647,7 @@ def bo_human(
                 K_list = []
                 for i in range(len(x_sols[0])):
                     set = jnp.array([x_sols[j][i] for j in range(alternatives)])
-                    K = gp["posterior"].prior.kernel.gram(set).matrix
+                    K = gp["posterior"].prior.kernel.gram(set).A
                     K = jnp.linalg.det(K)
                     K_list.append(K)
                 K_list = np.array(K_list)
@@ -964,7 +964,7 @@ def bo_batch(
                     K_list = []
                     for i in range(len(x_sols[0])):
                         set = jnp.array([x_sols[j][i] for j in range(alternatives)])
-                        K = gp["posterior"].prior.kernel.gram(set).matrix
+                        K = gp["posterior"].prior.kernel.gram(set).A
                         K = jnp.linalg.det(K)
                         K_list.append(K)
                     K_list = np.array(K_list)
