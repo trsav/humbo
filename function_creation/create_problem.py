@@ -25,7 +25,7 @@ def create_problem(key, l, d):
     # now do vectorised version
     sigma = 1
     k = Matern52(variance=sigma, lengthscale=l)
-    gram_matrix = k.gram(x_b).matrix
+    gram_matrix = k.gram(x_b).A
 
     y = random.multivariate_normal(key, jnp.zeros(n), gram_matrix)
     # w = jnp.linspace(1, 1.5, int(n / 2))

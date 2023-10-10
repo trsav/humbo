@@ -1,6 +1,5 @@
 from jax.config import config
 import pandas as pd 
-import blackjax
 from jax import numpy as jnp
 from jax import jit, value_and_grad, vmap
 import matplotlib
@@ -1007,4 +1006,4 @@ def plot_llmbo():
 
 
         plt.savefig('bo/plots/overall_regret_'+function+'.pdf')
-plot_llmbo()
+#plot_llmbo()

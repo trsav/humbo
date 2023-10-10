@@ -16,9 +16,9 @@ import uuid
 from pymoo.optimize import minimize
 from scipy.optimize import minimize as scipy_minimize
 import sys
-from PyPDF2 import PdfMerger
-import markdown
-import pdfkit
+# from PyPDF2 import PdfMerger
+# import markdown
+# import pdfkit
 
 
 def log_variable_sizes(local_vars):
@@ -172,7 +172,7 @@ def bo(
                     K_list = []
                     for i in range(len(x_sols[0])):
                         set = jnp.array([x_sols[j][i] for j in range(alternatives)])
-                        K = gp["posterior"].prior.kernel.gram(set).matrix
+                        K = gp["posterior"].prior.kernel.gram(set).A
                         K = jnp.linalg.det(K)
                         K_list.append(K)
                     K_list = np.array(K_list)
@@ -245,7 +245,7 @@ def bo(
 
                 fig,axs = plt.subplots(1,alternatives+1,figsize=(10,4))
                 for i in range(len(axs)-2):
-                    axs[i].get_shared_y_axes().join(axs[i], axs[i+1])
+                    axs[i].get_shared_y_axes().joined(axs[i], axs[i+1])
                 for i in range(len(axs)-1):
                     m,sigma = inference(gp, jnp.array([x_best_utopia[i]]))
                     sigma = np.sqrt(sigma)
