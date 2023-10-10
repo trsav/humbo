@@ -215,7 +215,14 @@ def llmbo(
                 prompt_data = {'previous_iterations':data['data'][-previous_iterations:]}
                 prev_just = problem_data['include_previous_justification']
                 response = json.loads(expert_reccomendation(f,x_names,x_alternates,aq_list,prompt_data,expertise,obj_desc,model,temperature,prev_just))
-                x_opt = np.array([x_alternates[response['choice']-1]])
+                # if choice is not a float then choose the best aquisition
+                try:
+                    if response['choice'].__class__ != float:
+                        x_opt = np.array([x_alternates[-1]])
+                    else:
+                        x_opt = np.array([x_alternates[response['choice']-1]])
+                except:
+                        x_opt = np.array([x_alternates[-1]])
             
             if problem_data['human_behaviour'] == 'expert':
                 f_utopia = []
