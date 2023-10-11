@@ -22,6 +22,7 @@ import matplotlib.pyplot as plt
 from jax.scipy.optimize import minimize
 from tensorflow_probability.substrates import jax as tfp
 import shutil 
+
 from matplotlib import rc
 plt.rcParams.update({
     "text.usetex": True,
@@ -391,7 +392,7 @@ def plot_regret(problem_data,axs,c,directory,max_it):
     return 
 
 def delete_folders(problem_data):
-    directory = 'bo/benchmark_results_specific'
+    directory = 'bo/benchmark_llmbo_results'
     files = os.listdir(directory)
     problem_data_list = []
     for i in tqdm(range(len(files))):
@@ -405,7 +406,7 @@ def delete_folders(problem_data):
     # create dataframe from list of dictionaries 
     df = pd.DataFrame(problem_data_list)
 
-    df = df.loc[(df['function'] == problem_data['function']) & (df['acquisition_function'] == problem_data['acquisition_function'])]
+    df = df.loc[(df['human_behaviour'] == problem_data['human_behaviour']) & (df['acquisition_function'] == problem_data['acquisition_function'])]
 
     file_names = df['file_name'].values
     regret_list = []
@@ -415,20 +416,10 @@ def delete_folders(problem_data):
         shutil.rmtree(file)
     return 
 
-# for d in [1,2,5]:
-#     problem_data = {}
-#     problem_data['algorithm'] = 'random'
-#     problem_data["batch_size"] = 8
-#     problem_data["gp_ms"] = 8
-#     problem_data["NSGA_iters"] = 75
-#     problem_data["plotting"] = False
-#     problem_data['max_batches'] = 50
-#     problem_data['lengthscale'] = 0.3
-#     #problem_data['lengthscale'] = 0.8
-#     problem_data['dim'] = d
-#     # at a given human behaviour
-#     problem_data['acquisition_function'] = 'UCB'
-#     delete_folders(problem_data)
+# problem_data = {}
+# problem_data['human_behaviour'] = 'llmbo'
+# problem_data['acquisition_function'] = 'UCB'
+# delete_folders(problem_data)
 
 
 # f_store = ['Branin']

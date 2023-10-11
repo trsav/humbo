@@ -215,8 +215,21 @@ def llmbo(
                 prompt_data = {'previous_iterations':data['data'][-previous_iterations:]}
                 prev_just = problem_data['include_previous_justification']
                 response = json.loads(expert_reccomendation(f,x_names,x_alternates,aq_list,prompt_data,expertise,obj_desc,model,temperature,prev_just))
-                x_opt = np.array([x_alternates[response['choice']-1]])
-            
+                try:
+                    x_opt = np.array([x_alternates[response['choice']-1]])
+                    bad_flag = False
+                except:
+                    x_opt = x_opt_aq
+
+                try:
+                    if x_opt.__class__ != np.ndarray:
+                        x_opt = x_opt_aq
+                        bad_flag = True
+                except:
+                    x_opt = x_opt_aq
+                    bad_flag = True
+
+
             if problem_data['human_behaviour'] == 'expert':
                 f_utopia = []
                 x_tests = jnp.array(jnp.split(x_best_utopia, alternatives))
@@ -257,15 +270,19 @@ def llmbo(
         mu_opt,var_opt = inference(gp, jnp.array([x_opt]))
 
 
+
         if d > 1 and problem_data['human_behaviour'] != 'trusting':
             x_opt = x_opt[0]
-
-        if d > 1 and problem_data['human_behaviour'] == 'trusting':
-
+        
+        elif d > 1 and problem_data['human_behaviour'] == 'trusting':
             x_opt = [float(x) for  x in x_opt]
-        print(x_opt)
-        
-        
+
+        elif d > 1 and problem_data['human_behaviour'] == 'llmbo' and bad_flag == True:
+            x_opt = [float(x) for  x in x_opt]
+
+        elif d > 1 and problem_data['human_behaviour'] == 'llmbo' and bad_flag == False:
+            x_opt = x_opt[0]
+
 
         print("Optimal Solution: ", x_opt)
 
