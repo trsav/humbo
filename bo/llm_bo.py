@@ -262,10 +262,6 @@ def llmbo(
 
         iteration += 1
 
-        mu_opt,var_opt = inference(gp, jnp.array([x_opt]))
-
-
-
         if d > 1 and problem_data['human_behaviour'] != 'trusting' and problem_data['human_behaviour'] != 'llmbo':
             x_opt = x_opt[0]
         
@@ -278,7 +274,6 @@ def llmbo(
         elif d > 1 and problem_data['human_behaviour'] == 'llmbo' and bad_flag == False:
             x_opt = x_opt[0]
 
-
         print("Optimal Solution: ", x_opt)
 
 
@@ -289,8 +284,6 @@ def llmbo(
 
         run_info["objective"] = f_eval
         run_info["id"] = str(uuid.uuid4())
-        run_info["pred_mu"] = np.float64(mu_opt)
-        run_info["pred_sigma"] = np.float64(np.sqrt(var_opt))
 
         if problem_data['human_behaviour'] == 'llmbo':
             if bad_flag == False:

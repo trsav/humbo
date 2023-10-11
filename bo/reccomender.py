@@ -38,7 +38,7 @@ def expert_reccomendation(f,x_names,x,u,data,subject,objective_description,model
 
     for i in range(len(x)):
         sol_str = ''.join([x_names[j]+': '+ str(x[i][j]) +', ' for j in range(len(x[i]))])
-        user_prompt += f'''Solution {str(i+1)}: {sol_str}, Utilty value, U(x) = {u[i]} \n'''
+        user_prompt += f'''Solution {str(i+1)}: {sol_str}, Utility value, U(x) = {u[i]} \n'''
     user_prompt += '\nNote that higher values of U(x) are more attractive, and theoretically better choices.\n'
     objective = '\nOptimisation Objective: '  + objective_description
     user_prompt += objective

@@ -83,7 +83,7 @@ if __name__ == '__main__':
     problem_data['repeat'] = repeat
     problem_data["gp_ms"] = 16
     problem_data["alternatives"] = 3
-    problem_data["NSGA_iters"] = 750
+    problem_data["NSGA_iters"] = 1000
     problem_data['max_iterations'] = 50
     problem_data['acquisition_function'] = 'UCB'
     problem_data['x_names'] = f.x_names
