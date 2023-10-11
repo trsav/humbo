@@ -27,7 +27,7 @@ def run_behaviour(behaviour_index,aq,d,f_key,res_path):
     problem_data["gp_ms"] = 8
     problem_data["alternatives"] = 4
     problem_data["NSGA_iters"] = 400
-    problem_data["plotting"] = False
+    problem_data["plotting"] = True
     problem_data['max_iterations'] = 75
     problem_data['lengthscale'] = 0.04
     #problem_data['lengthscale'] = 0.8
@@ -76,5 +76,9 @@ if __name__ == '__main__':
         aq = 'UCB'
         d = 1
         res_path = 'bo/plots/'
+        try:
+            os.mkdir(res_path)
+        except FileExistsError:
+            pass 
         run_behaviour(0,aq,d,np.random.randint(0,40),res_path)
 

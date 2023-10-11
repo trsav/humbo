@@ -15,4 +15,4 @@ bo/**.pdf
 misc
 benchmarks
 **/*.sh
-materials_benchmarking
+!pull_results.sh
