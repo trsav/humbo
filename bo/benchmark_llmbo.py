@@ -45,7 +45,7 @@ def create_Perovskite():
     return f
 
 def create_AutoAM():
-    f = AutoAM(1)
+    f = AutoAM(8)
     return f
 
 def create_CrossedBarrel():

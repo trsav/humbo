@@ -33,9 +33,8 @@ class GeneralObjective:
         self.dataset = ds_grouped.reset_index()
 
     def bounds_setting(self):
-        b = np.array([self.dataset.iloc[:, :-1].min().values, self.dataset.iloc[:, :-1].max().values]).T
+        self.bounds = np.array([self.dataset.iloc[:, :-1].min().values, self.dataset.iloc[:, :-1].max().values]).T
         # normalise bounds
-        b = (b - self.input_mean) / self.input_std
 
 
     def normalize_data(self):
@@ -50,7 +49,7 @@ class GeneralObjective:
 
     def __call__(self, x):
         x = np.array(x)
-        x = [float((xi - self.input_mean) / self.input_std) for xi in x]
+        x = [float((x[i] - self.input_mean[i]) / self.input_std[i]) for i in range(len(x))]
         m_y, v_y = inference(self.gp, jnp.array([[x]]))
         val = (m_y.item() * self.output_std) + self.output_mean
         if self.obj_type == "min":
