@@ -292,8 +292,9 @@ def llmbo(
         run_info["pred_mu"] = np.float64(mu_opt)
         run_info["pred_sigma"] = np.float64(np.sqrt(var_opt))
 
-        if problem_data['human_behaviour'] == 'llmbo' and bad_flag != False:
-            run_info['reason'] = response
+        if problem_data['human_behaviour'] == 'llmbo':
+            if bad_flag == False:
+                run_info['reason'] = response
 
         
         regret = (f.f_opt - max(f_eval,jnp.max(outputs)))

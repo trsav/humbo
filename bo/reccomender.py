@@ -41,13 +41,11 @@ def expert_reccomendation(f,x_names,x,u,data,subject,objective_description,model
         user_prompt += f'''Solution {str(i+1)}: {sol_str}, Utilty value, U(x) = {u[i]} \n'''
     user_prompt += '\nNote that higher values of U(x) are more attractive, and theoretically better choices.\n'
     objective = '\nOptimisation Objective: '  + objective_description
-    user_prompt += objective + '\n'
+    user_prompt += objective
 
     prev_data_len = len(data['previous_iterations'])
 
-    user_prompt += f'''
-    Below is a JSON object containing the previous {str(prev_data_len)} iterations of the optimisation process, the inputs are respective to the variables described above, and the outputs are the objective function values.
-    '''
+    user_prompt += f'''Below is a JSON object containing the previous {str(prev_data_len)} iterations of the optimisation process, the inputs are respective to the variables described above, and the outputs are the objective function values.'''
     if prev_justifications == True:
         user_prompt += '''
         This may include your previous justifiction given for selecting a datapoint. 
