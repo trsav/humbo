@@ -45,7 +45,7 @@ def create_Perovskite():
     return f
 
 def create_AutoAM():
-    f = AutoAM(8)
+    f = AutoAM(1)
     return f
 
 def create_CrossedBarrel():
@@ -73,10 +73,12 @@ if __name__ == '__main__':
         b_index = int(sys.argv[2]) # per job script 
     except:
         f_key = 3
-        b_index = 0
+        b_index = 3
         repeat = 0 
+        res_path = 'bo/plots/'
 
     f = f_list[f_key]()
+    #f = RosenbrockLLM(5)
     
     problem_data = {}
     problem_data["sample_initial"] = 16

@@ -37,7 +37,7 @@ def expert_reccomendation(f,x_names,x,u,data,subject,objective_description,model
             x[i][j] = np.round(x[i][j],round)
 
     for i in range(len(x)):
-        sol_str = ''.join([x_names[j]+': '+ str(x[i][j]) +', ' for j in range(len(x[i]))])
+        sol_str = ''.join([x_names[j]+': '+ str(np.round(x[i][j],round)) +', ' for j in range(len(x[i]))])
         user_prompt += f'''Solution {str(i+1)}: {sol_str}, Utility value, U(x) = {u[i]} \n'''
     user_prompt += '\nNote that higher values of U(x) are more attractive, and theoretically better choices.\n'
     objective = '\nOptimisation Objective: '  + objective_description
@@ -59,8 +59,11 @@ def expert_reccomendation(f,x_names,x,u,data,subject,objective_description,model
         x_clean = {}
         for j in range(len(data['previous_iterations'][i]['inputs'])):
             x_val = (data['previous_iterations'][i]['inputs'][j])
-            x_val = np.round(x_val * (f.var_bounds[j][1] - f.var_bounds[j][0]) + f.var_bounds[j][0],round)
-            x_clean[x_names[j]] = x_val
+            x_val = np.round(x_val,round)
+            try:
+                x_clean[x_names[j]] = x_val.item()
+            except:
+                x_clean[x_names[j]] = x_val
 
         clean_data.append({'inputs':x_clean,'objective':np.round(data['previous_iterations'][i]['objective'],round)})
         if prev_justifications == True:

@@ -5,7 +5,7 @@ from bo.utils import *
 import uuid
 import pickle
 
-
+jax.config.update("jax_enable_x64", True)
 
 class GeneralObjective:
     def __init__(self, gp_restarts,name, expertise, objective_description, obj_type):
@@ -20,8 +20,8 @@ class GeneralObjective:
         self.dim = len(self.x_names)
         self.gp_restarts = gp_restarts
         self.dataset_grouping()
-        self.bounds_setting()
         self.normalize_data()
+        self.bounds_setting()
         self.gp = build_gp_dict(*train_gp(self.input_matrix, jnp.array([self.output_matrix]).T, self.gp_restarts))
         if self.obj_type == "min":
             self.f_opt = -self.output_matrix.min()
@@ -33,19 +33,30 @@ class GeneralObjective:
         self.dataset = ds_grouped.reset_index()
 
     def bounds_setting(self):
-        self.var_bounds = np.array([self.dataset.iloc[:, :-1].min().values, self.dataset.iloc[:, :-1].max().values]).T
-        self.bounds = np.array([[0, 1] for _ in range(self.dim)])
+        b = np.array([self.dataset.iloc[:, :-1].min().values, self.dataset.iloc[:, :-1].max().values]).T
+        # normalise bounds
+        b = (b - self.input_mean) / self.input_std
+
 
     def normalize_data(self):
-        self.input_matrix = (self.dataset.iloc[:, :-1].values - self.var_bounds[:, 0]) / (self.var_bounds[:, 1] - self.var_bounds[:, 0])
-        self.output_matrix = (self.dataset[self.y_name].values - np.mean(self.dataset[self.y_name].values)) / np.std(self.dataset[self.y_name].values)
+        self.input_matrix = self.dataset.iloc[:, :-1].values 
+        self.output_matrix = self.dataset[self.y_name].values
+        self.input_mean = self.input_matrix.mean(axis=0)
+        self.input_std = self.input_matrix.std(axis=0)
+        self.output_mean = self.output_matrix.mean()
+        self.output_std = self.output_matrix.std()
+        self.input_matrix = (self.input_matrix - self.input_mean) / self.input_std
+        self.output_matrix = (self.output_matrix - self.output_mean) / self.output_std
 
     def __call__(self, x):
+        x = np.array(x)
+        x = [float((xi - self.input_mean) / self.input_std) for xi in x]
         m_y, v_y = inference(self.gp, jnp.array([[x]]))
+        val = (m_y.item() * self.output_std) + self.output_mean
         if self.obj_type == "min":
-            return -m_y.item()
+            return -val
         else:
-            return m_y.item()
+            return val
 
 
 class Perovskite(GeneralObjective):
@@ -146,11 +157,27 @@ class P3HT(GeneralObjective):
         obj_type = "max")
 
 
+class RosenbrockLLM:
+    def __init__(self, d):
+        self.name = "Rosenbrock" + str(d)
+        self.expertise = "Problems used to benchmark optimisation problems"
+        self.objective_description = "The goal is to maximise the "+str(d)+"D negative Rosenbrock function."
+        self.x_names = ['x_'+str(i+1) for i in range(d)]
+        self.y_name = 'arbitary benchmark objective'
+        self.bounds = list(jnp.array([[-5, 10]] * d))
+        self.f_opt = 0
+        self.dim = d
+
+    def __call__(self, x):
+        d = len(x)
+        x = jnp.array(x)
+        f = jnp.sum(100 * (x[1:] - x[:-1] ** 2) ** 2 + (x[:-1] - 1) ** 2)
+        return -f.item() / 100000
 
 
 
 # f = AgNP()
 # f = Perovskite()
-# f = AutoAM()
+# f = AutoAM(1)
 # f = CrossedBarrel()
 # f = P3HT(gp_restarts = 1)

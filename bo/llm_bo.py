@@ -3,6 +3,7 @@
 from utils import *
 import os
 from jax import vmap
+import copy
 from jaxopt import ScipyBoundedMinimize as bounded_solver
 from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.operators.crossover.sbx import SBX
@@ -38,7 +39,6 @@ def llmbo(
 
     for sample in samples:
         
-        
         res = f(sample)
         run_info = {
             "id": str(uuid.uuid4()),
@@ -68,18 +68,31 @@ def llmbo(
         start_time = time.time()
         data = read_json(data_path)
         inputs, outputs, cost = format_data(data)
+        mean_outputs = np.mean(outputs)
+        std_outputs = np.std(outputs)
+        outputs = (outputs - mean_outputs) / std_outputs
+
+        mean_inputs = np.mean(inputs, axis=0)
+        std_inputs = np.std(inputs, axis=0)
+        inputs = (inputs - mean_inputs) / std_inputs
+
+        bounds = []
+        for i in range(len(x_bounds)):
+            lb = float((x_bounds[i][0] - mean_inputs[i]) / std_inputs[i])
+            ub = float((x_bounds[i][1] - mean_inputs[i]) / std_inputs[i])
+            bounds.append([lb,ub])
+
         d = len(inputs[0])
         f_best = np.max(outputs)
         gp = build_gp_dict(*train_gp(inputs, outputs, gp_ms))
         util_args = (gp, f_best)
 
-
         aq = vmap(f_aq, in_axes=(0, None))
 
         # optimising the aquisition of inputs, disregarding fidelity
         print("Optimising utility function...")
-        upper_bounds_single = jnp.array([b[1] for b in x_bounds])
-        lower_bounds_single = jnp.array([b[0] for b in x_bounds])
+        upper_bounds_single = jnp.array([b[1] for b in bounds])
+        lower_bounds_single = jnp.array([b[0] for b in bounds])
 
         opt_bounds = (lower_bounds_single, upper_bounds_single)
         s_init = jnp.array(sample_bounds(x_bounds, 36))
@@ -114,7 +127,7 @@ def llmbo(
 
         else:
 
-            n_opt = int(len(x_bounds) * (alternatives-1))
+            n_opt = int(len(bounds) * (alternatives-1))
             upper_bounds = jnp.repeat(upper_bounds_single, alternatives-1)
             lower_bounds = jnp.repeat(lower_bounds_single, alternatives-1)
             termination = get_termination("n_gen", problem_data["NSGA_iters"])
@@ -190,11 +203,11 @@ def llmbo(
                 x_alternates = list(jnp.split(x_best_utopia, alternatives))
                 x_alternates = [x_alternates[i].tolist() for i in range(alternatives)]
 
-                # unnormalise x_alternatives for LLM 
-                # bounds are 0-1 but f.var_bounds contains real
-                for i in range(alternatives):
-                    for j in range(len(x_alternates[i])):
-                        x_alternates[i][j] = x_alternates[i][j] * (f.var_bounds[j][1] - f.var_bounds[j][0]) + f.var_bounds[j][0]
+                # # unnormalise x_alternatives for LLM 
+                # # bounds are 0-1 but f.var_bounds contains real
+                # for i in range(alternatives):
+                #     for j in range(len(x_alternates[i])):
+                #         x_alternates[i][j] = x_alternates[i][j] * (f.var_bounds[j][1] - f.var_bounds[j][0]) + f.var_bounds[j][0]
 
 
                 x_names = problem_data['x_names']
@@ -213,6 +226,11 @@ def llmbo(
                     model = 'gpt-4-0613'
                 # data is the last previous iterations 
                 prompt_data = {'previous_iterations':data['data'][-previous_iterations:]}
+                for i in range(alternatives):
+                    # unnormalise for LLM
+                    b_array = np.array(bounds)
+                    x_alternates[i] = list((np.array(x_alternates[i]) * std_inputs) + mean_inputs)
+
                 prev_just = problem_data['include_previous_justification']
                 response = json.loads(expert_reccomendation(f,x_names,x_alternates,aq_list,prompt_data,expertise,obj_desc,model,temperature,prev_just))
                 # response = 'NaN'
@@ -222,8 +240,6 @@ def llmbo(
                 except:
                     x_opt = x_opt_aq
                     bad_flag = True
-
-
 
             if problem_data['human_behaviour'] == 'expert':
                 f_utopia = []
@@ -274,8 +290,8 @@ def llmbo(
         elif d > 1 and problem_data['human_behaviour'] == 'llmbo' and bad_flag == False:
             x_opt = x_opt[0]
 
+            
         print("Optimal Solution: ", x_opt)
-
 
         f_eval =  f(x_opt)
         run_info = {
