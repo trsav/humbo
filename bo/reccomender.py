@@ -12,7 +12,7 @@ with open("misc/api_key.txt") as f:
 def expert_reccomendation(f,x_names,x,u,data,subject,objective_description,model,temperature,prev_justifications):
 
     context =  " You are an expert in " + subject + "."
-    context += " You are tasked with selecting the best solution from a set of " + str(len(x)) + " alternative solutions to achieve the goal of " + objective_description + "."
+    context += " You are tasked with selecting the best solution from a set of " + str(len(x)) + " alternative solutions."
     context += " A set of alternative solutions to achieve this goal is provided to you."
     context += " What follows is a description of what is provided to you for each alternate solution: \n\n"
 
@@ -24,7 +24,7 @@ def expert_reccomendation(f,x_names,x,u,data,subject,objective_description,model
     context += " Importantly, you must consider how each solution will perform in the real world and how it relates to the objective. The utility quantities provided have been calculated with no account of physical knowledge, you must be sceptical with respect to these values in light of your knowledge."
     context += " You must consider the relative differences between the information provided for each solution, and how this relates to the objective, as well as the physical differences between the solutions."
     context += " You must be neutral as to whether the physical knowledge you understand regarding the solutions outweighs the utility values, or vice versa."
-    context += " You must think clearly, logically, and step-by-step to select the best option from the alternative solutions provided, selecting that one that you think will optimsation objective."
+    context += " You must think clearly, logically, and step-by-step to select the best option from the alternative solutions provided, selecting that one that you think will optimisation objective."
 
 
     user_prompt = f'''
