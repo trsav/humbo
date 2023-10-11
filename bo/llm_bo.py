@@ -153,7 +153,7 @@ def llmbo(
                     K_list = []
                     for i in range(len(x_sols[0])):
                         set = jnp.array([x_sols[j][i] for j in range(alternatives)])
-                        K = gp["posterior"].prior.kernel.gram(set).matrix
+                        K = gp["posterior"].prior.kernel.gram(set).A
                         K = jnp.linalg.det(K)
                         K_list.append(K)
                     K_list = np.array(K_list)
@@ -215,19 +215,14 @@ def llmbo(
                 prompt_data = {'previous_iterations':data['data'][-previous_iterations:]}
                 prev_just = problem_data['include_previous_justification']
                 response = json.loads(expert_reccomendation(f,x_names,x_alternates,aq_list,prompt_data,expertise,obj_desc,model,temperature,prev_just))
+                # response = 'NaN'
                 try:
                     x_opt = np.array([x_alternates[response['choice']-1]])
                     bad_flag = False
                 except:
                     x_opt = x_opt_aq
-
-                try:
-                    if x_opt.__class__ != np.ndarray:
-                        x_opt = x_opt_aq
-                        bad_flag = True
-                except:
-                    x_opt = x_opt_aq
                     bad_flag = True
+
 
 
             if problem_data['human_behaviour'] == 'expert':
@@ -271,7 +266,7 @@ def llmbo(
 
 
 
-        if d > 1 and problem_data['human_behaviour'] != 'trusting':
+        if d > 1 and problem_data['human_behaviour'] != 'trusting' and problem_data['human_behaviour'] != 'llmbo':
             x_opt = x_opt[0]
         
         elif d > 1 and problem_data['human_behaviour'] == 'trusting':
@@ -297,7 +292,7 @@ def llmbo(
         run_info["pred_mu"] = np.float64(mu_opt)
         run_info["pred_sigma"] = np.float64(np.sqrt(var_opt))
 
-        if problem_data['human_behaviour'] == 'llmbo':
+        if problem_data['human_behaviour'] == 'llmbo' and bad_flag != False:
             run_info['reason'] = response
 
         

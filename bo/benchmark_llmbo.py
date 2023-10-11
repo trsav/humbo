@@ -65,11 +65,16 @@ if __name__ == '__main__':
 
     res_path = 'bo/benchmark_llmbo_results/'
 
-    array_index = int(sys.argv[1])
-    f_key = array_index // repeats
-    repeat = array_index % repeats
-    
-    b_index = int(sys.argv[2]) # per job script 
+    try:
+        array_index = int(sys.argv[1])
+        f_key = array_index // repeats
+        repeat = array_index % repeats
+        
+        b_index = int(sys.argv[2]) # per job script 
+    except:
+        f_key = 3
+        b_index = 0
+        repeat = 0 
 
     f = f_list[f_key]()
     
