@@ -16,3 +16,4 @@ misc
 benchmarks
 **/*.sh
 !pull_results.sh
+**/*.out

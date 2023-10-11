@@ -1,0 +1,3 @@
+[submodule "materials_benchmarking"]
+	path = materials_benchmarking
+	url = https://github.com/PV-Lab/Benchmarking.git
