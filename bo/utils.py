@@ -950,15 +950,14 @@ def plot_regret_llmbo(problem_data,axs,c,directory,function):
 def plot_llmbo():
     directory = 'bo/benchmark_llmbo_results'
     colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
-    human_behaviours = ['expert','trusting','llmbo',0.33]
-
+    # human_behaviours = ['expert','trusting','llmbo',0.33]
+    human_behaviours = ['llmbo']
 
     functions = ['AgNP','AutoAM','Crossed barrel','P3HT','Perovskite']
 
     for function in functions:
         fig,axs = plt.subplots(1,2,figsize=(8,2.5))
         
-
         for i in range(len(human_behaviours)):
             # for this problem data
             problem_data = {}
@@ -984,17 +983,13 @@ def plot_llmbo():
         axs[1].set_xlabel(r"Iterations, $\tau$",fontsize=fs)
         axs[1].set_ylabel(r"Average Regret, ${R_\tau}/{\tau}$",fontsize=fs)
         # split function from number at end (2,5 or 10)
-        if function.split('1')[-1] == '0':
-            n = str(10)
-            func_name = function.split('1')[0]
-        else:
-            n = function[-1]
-            func_name = function[:-1]
+        func_name = function
+        
         
 
         # text with white background in upper right of right plot with functon name
 
-        axs[1].text(0.95, 0.95, func_name + ': $d= $'+n, horizontalalignment='right',verticalalignment='top', transform=axs[1].transAxes,fontsize=fs,bbox=dict(facecolor='white',edgecolor='none',pad=0.5))
+        axs[1].text(0.95, 0.95, func_name, horizontalalignment='right',verticalalignment='top', transform=axs[1].transAxes,fontsize=fs,bbox=dict(facecolor='white',edgecolor='none',pad=0.5))
         lines, labels = axs[0].get_legend_handles_labels()
         fig.legend(lines, labels, loc='lower center', bbox_to_anchor=(0.5, 0.875), ncol=6,frameon=False)
 
@@ -1002,8 +997,8 @@ def plot_llmbo():
         fig.subplots_adjust(top = 0.875,left = 0.125)
         
 
-        axs[0].set_yscale('log')
+        #axs[0].set_yscale('log')
 
 
         plt.savefig('bo/plots/overall_regret_'+function+'.pdf')
-#plot_llmbo()
+plot_llmbo()
