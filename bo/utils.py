@@ -237,11 +237,11 @@ def train_gp(inputs, outputs, ms):
     return best_posterior, D
 
 
-def inference(gp, inputs):
+def inference(gp, x_inputs):
     posterior = gp["posterior"]
     D = gp["D"]
 
-    latent_dist = posterior.predict(inputs, train_data=D)
+    latent_dist = posterior.predict(x_inputs, train_data=D)
     predictive_dist = posterior.likelihood(latent_dist)
 
     predictive_mean = predictive_dist.mean().astype(float)

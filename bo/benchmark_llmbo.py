@@ -72,7 +72,7 @@ if __name__ == '__main__':
         
         b_index = int(sys.argv[2]) # per job script 
     except:
-        f_key = 3
+        f_key = 1
         b_index = 3
         repeat = 0 
         res_path = 'bo/plots/'

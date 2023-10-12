@@ -23,10 +23,6 @@ class GeneralObjective:
         self.normalize_data()
         self.bounds_setting()
         self.gp = build_gp_dict(*train_gp(self.input_matrix, jnp.array([self.output_matrix]).T, self.gp_restarts))
-        if self.obj_type == "min":
-            self.f_opt = -self.output_matrix.min()
-        else:
-            self.f_opt = self.output_matrix.max()
 
     def dataset_grouping(self):
         ds_grouped = self.dataset.groupby(self.x_names)[self.y_name].agg(lambda x: x.unique().mean())
@@ -34,12 +30,14 @@ class GeneralObjective:
 
     def bounds_setting(self):
         self.bounds = np.array([self.dataset.iloc[:, :-1].min().values, self.dataset.iloc[:, :-1].max().values]).T
-        # normalise bounds
-
 
     def normalize_data(self):
         self.input_matrix = self.dataset.iloc[:, :-1].values 
         self.output_matrix = self.dataset[self.y_name].values
+        if self.obj_type == "min":
+            self.f_opt = -self.output_matrix.min()
+        else:
+            self.f_opt = self.output_matrix.max()
         self.input_mean = self.input_matrix.mean(axis=0)
         self.input_std = self.input_matrix.std(axis=0)
         self.output_mean = self.output_matrix.mean()
@@ -49,8 +47,8 @@ class GeneralObjective:
 
     def __call__(self, x):
         x = np.array(x)
-        x = [float((x[i] - self.input_mean[i]) / self.input_std[i]) for i in range(len(x))]
-        m_y, v_y = inference(self.gp, jnp.array([[x]]))
+        x_n = [float((x[i] - self.input_mean[i]) / self.input_std[i]) for i in range(len(x))]
+        m_y, v_y = inference(self.gp, jnp.array([x_n]))
         val = (m_y.item() * self.output_std) + self.output_mean
         if self.obj_type == "min":
             return -val

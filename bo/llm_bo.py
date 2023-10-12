@@ -70,7 +70,8 @@ def llmbo(
         inputs, outputs, cost = format_data(data)
         mean_outputs = np.mean(outputs)
         std_outputs = np.std(outputs)
-        outputs = (outputs - mean_outputs) / std_outputs
+        if std_outputs != 0:
+            outputs = (outputs - mean_outputs) / std_outputs
 
         mean_inputs = np.mean(inputs, axis=0)
         std_inputs = np.std(inputs, axis=0)
@@ -166,7 +167,7 @@ def llmbo(
                     K_list = []
                     for i in range(len(x_sols[0])):
                         set = jnp.array([x_sols[j][i] for j in range(alternatives)])
-                        K = gp["posterior"].prior.kernel.gram(set).A
+                        K = gp["posterior"].prior.kernel.gram(set).matrix
                         K = jnp.linalg.det(K)
                         K_list.append(K)
                     K_list = np.array(K_list)
@@ -306,7 +307,7 @@ def llmbo(
                 run_info['reason'] = response
 
         
-        regret = (f.f_opt - max(f_eval,jnp.max(outputs)))
+        regret = min((f.f_opt - f_eval),data['data'][-1]['regret'])
         if regret.__class__ != float:
             regret = regret.item()
         run_info["regret"] = regret
