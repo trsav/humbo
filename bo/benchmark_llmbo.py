@@ -61,7 +61,7 @@ f_count = 5
 
 if __name__ == '__main__':
 
-    human_behaviours = [0.33,'expert','trusting']
+    human_behaviours = ['llmbo',0.33,'expert','trusting']
 
     res_path = 'bo/benchmark_llmbo_results/'
 
