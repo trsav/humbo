@@ -390,7 +390,7 @@ def plot_regret(problem_data,axs,c,directory,max_it):
     return 
 
 def delete_folders(problem_data):
-    directory = 'bo/benchmark_results_specific'
+    directory = 'bo/benchmark_llmbo_results'
     files = os.listdir(directory)
     problem_data_list = []
     for i in tqdm(range(len(files))):
@@ -404,7 +404,7 @@ def delete_folders(problem_data):
     # create dataframe from list of dictionaries 
     df = pd.DataFrame(problem_data_list)
 
-    df = df.loc[(df['function'] == problem_data['function']) & (df['acquisition_function'] == problem_data['acquisition_function'])]
+    df = df.loc[(df['human_behaviour'] == problem_data['human_behaviour']) & (df['acquisition_function'] == problem_data['acquisition_function'])]
 
     file_names = df['file_name'].values
     regret_list = []
@@ -439,15 +439,9 @@ def delete_folders(problem_data):
 #     f_store.append('Powell'+str(i))
 
 # for f in f_store:
+# for b in ['trusting',0.33,'expert']:
 #     problem_data = {}
-#     problem_data['function'] = f
-#     problem_data["sample_initial"] = 4
-#     problem_data["gp_ms"] = 8
-#     problem_data["alternatives"] = 4
-#     problem_data["NSGA_iters"] = 100
-#     problem_data["plotting"] = False
-#     problem_data['max_iterations'] = 100
-#     problem_data['human_behaviour'] = 'trusting'
+#     problem_data['human_behaviour'] = b
 #     problem_data['acquisition_function'] = 'UCB'
 #     delete_folders(problem_data)
 

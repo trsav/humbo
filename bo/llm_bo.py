@@ -240,6 +240,7 @@ def llmbo(
                     bad_flag = False
                 except:
                     x_opt = x_opt_aq
+                    x_opt = list((np.array(x_opt) * std_inputs) + mean_inputs)
                     bad_flag = True
 
             if problem_data['human_behaviour'] == 'expert':
@@ -248,6 +249,7 @@ def llmbo(
                 for i in range(alternatives):
                     f_utopia.append(f(x_tests[i]))
                 x_opt = np.array([x_tests[np.argmax(f_utopia)]])
+                x_opt = list((np.array(x_opt) * std_inputs) + mean_inputs)
 
             if problem_data['human_behaviour'] == 'adversarial':
                 f_utopia = []
@@ -255,6 +257,7 @@ def llmbo(
                 for i in range(alternatives):
                     f_utopia.append(f(x_tests[i]))
                 x_opt = np.array([x_tests[np.argmin(f_utopia)]])
+                x_opt = list((np.array(x_opt) * std_inputs) + mean_inputs)
             
 
             if problem_data['human_behaviour'].__class__ == float:
@@ -270,9 +273,11 @@ def llmbo(
                 probability_of_correct = np.random.uniform()
                 if probability_of_correct < problem_data['human_behaviour']:
                     x_opt = np.array([x_tests[best_index]])
+                    x_opt = list((np.array(x_opt) * std_inputs) + mean_inputs)
                 else:
                     x_tests = np.delete(x_tests,best_index,axis=0)
                     x_opt = np.array([x_tests[np.random.randint(0,alternatives-1)]])
+                    x_opt = list((np.array(x_opt) * std_inputs) + mean_inputs)
 
         if d == 1:
             x_opt = [x_opt[0].item()]
