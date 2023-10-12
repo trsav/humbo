@@ -25,13 +25,14 @@ def create_problem(key, l, d):
     # now do vectorised version
     sigma = 1
     k = Matern52(variance=sigma, lengthscale=l)
-    gram_matrix = k.gram(x_b).A
+    gram_matrix = k.gram(x_b).matrix
 
     y = random.multivariate_normal(key, jnp.zeros(n), gram_matrix)
     # w = jnp.linspace(1, 1.5, int(n / 2))
     # w = jnp.concatenate((w, w[::-1]))
     # y *= w
     # y = y[:, None]
+    y = (y - jnp.min(y)) / (jnp.max(y) - jnp.min(y))
     if d == 1:
         D = gpx.Dataset(x_b[:, None], y[:, None])
     else:
@@ -49,8 +50,8 @@ def create_problem(key, l, d):
         model=posterior,
         objective=negative_mll,
         train_data=D,
-        optim=ox.adam(learning_rate=0.1),
-        num_iters=200,
+        optim=ox.adam(learning_rate=0.2),
+        num_iters=500,
         key=random.PRNGKey(0),
     )
 
