@@ -298,6 +298,7 @@ def llmbo(
 
             
         print("Optimal Solution: ", x_opt)
+        x_opt = [float(x_opt[i]) for i in range(len(x_opt))]
 
         f_eval =  f(x_opt)
         run_info = {
