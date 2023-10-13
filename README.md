@@ -2,7 +2,14 @@
 <img src="https://avatars.githubusercontent.com/u/81195336?s=200&v=4" alt="Optimal PSE logo" title="OptimalPSE" align="right" height="150" />
 </a>
 
-## Expert-guided Bayesian Optimisation for Human-in-the-loop Experimental Design of Known Systems
+## LLM-BO
+
+<!-- include llmbo_dalle.png as an image centered  -->
+
+<p align="center">
+  <img src="llmbo_dalle.png" alt="LLM-BO" width="500"/>
+</p>
+
 
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 

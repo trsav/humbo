@@ -864,9 +864,12 @@ def plot_regret_llmbo(problem_data,axs,c,directory,function):
         if '.' not in files[i] and function in files[i]:
             results = directory+'/'+files[i] + '/res.json'
             # open json
-            with open(results, "r") as f:
-                data = json.load(f)
-            problem_data_list.append(data['problem_data'])
+            try:
+                with open(results, "r") as f:
+                    data = json.load(f)
+                problem_data_list.append(data['problem_data'])
+            except:
+                pass
 
     # create dataframe from list of dictionaries 
     df = pd.DataFrame(problem_data_list)
@@ -944,8 +947,8 @@ def plot_regret_llmbo(problem_data,axs,c,directory,function):
 def plot_llmbo():
     directory = 'bo/benchmark_llmbo_results'
     colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
-    # human_behaviours = ['expert','trusting','llmbo',0.33]
-    human_behaviours = ['llmbo']
+    human_behaviours = ['expert','trusting','llmbo',0.33]
+    # human_behaviours = ['llmbo']
 
     functions = ['AgNP','AutoAM','Crossed barrel','P3HT','Perovskite']
 
@@ -955,12 +958,8 @@ def plot_llmbo():
         for i in range(len(human_behaviours)):
             # for this problem data
             problem_data = {}
-            problem_data["sample_initial"] = 4
-            problem_data["gp_ms"] = 8
-            problem_data["alternatives"] = 4
-            problem_data["NSGA_iters"] = 150
-            problem_data["plotting"] = True
-            problem_data['max_iterations'] = 60
+            problem_data["sample_initial"] = 16
+            problem_data['max_iterations'] = 50
             problem_data['human_behaviour'] = human_behaviours[i]
             problem_data['acquisition_function'] = 'UCB'
 
@@ -995,4 +994,4 @@ def plot_llmbo():
 
 
         plt.savefig('bo/plots/overall_regret_'+function+'.pdf')
-#plot_llmbo()
+plot_llmbo()
