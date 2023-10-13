@@ -128,7 +128,7 @@ def real_functions(array_index,b_index):
         f = Perovskite(8)
         return f
     def create_AutoAM():
-        f = AutoAM(1)
+        f = AutoAM(8)
         return f
     def create_CrossedBarrel():
         f = CrossedBarrel(1)
