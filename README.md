@@ -1,11 +1,13 @@
-<!-- include llmbo_dalle.png as an image centered  -->
+
+
+<!-- Do the above, but make the image on the right of the readme -->
 
 <p align="center">
   <img src="llmbo_dalle.png" alt="LLM-BO" width="300"/>
 </p>
 
+# LLMBO [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # Instructions
 
@@ -19,6 +21,8 @@ $ git clone --recurse-submodules git@github.com:trsav/llmbo.git
 ```
 $ conda env create -f environment.yml
 ```
+
+
 <!-- 
 
 2. Build Docker container from ```Dockerfile``` (~5 mins)
