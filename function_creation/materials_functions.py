@@ -63,11 +63,9 @@ class Perovskite(GeneralObjective):
             name= "Perovskite",
             expertise = "The creation of environmentally friendly, stable alloyed organic-inorganic perovskites",
             objective_description = '''
-            28 spin-coated thin-film samples are examined in situ in parallel using an environmental chamber
-            under 85% relative humidity (RH) and 85°C in the air. 
+            28 spin-coated thin-film samples are examined in situ in parallel using an environmental chamber under 85% relative humidity (RH) and 85°C in the air. 
             Sun visible only illumination is applied to enable automatic image capture every 5 min using an RGB camera (~200 μm resolution). 
-            Photoactive α-perovskite phases within CsxMAyFA1−x−yPbI3 exhibit a band gap of ~1.5 eV, 
-            whereas their main degradation products under hot and humid conditions, 
+            Photoactive α-perovskite phases within CsxMAyFA1−x−yPbI3 exhibit a band gap of ~1.5 eV, whereas their main degradation products under hot and humid conditions, 
             PbI2 (2.27 eV)25 δ-CsPbI3 (2.82 eV),26 or δ-FAPbI3 (2.43 eV)27 show deteriorated photophysical properties. 
             We hence used a color-based metric as a proxy to capture the macroscopic evolution of the high-band-gap, 
             non-perovskite phases. We define the instability index as the integrated color change of an unencapsulated perovskite film over accelerated degradation test duration T. 

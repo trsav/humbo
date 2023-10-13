@@ -14,8 +14,6 @@ bo/**/
 bo/**.pdf
 misc
 benchmarks
-**/*.sh
-!pull_results.sh
 **/*.out
 todo 
 !llmbo_dalle.png

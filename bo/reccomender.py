@@ -1,59 +1,47 @@
+from llama_cpp import Llama
+import json 
 import openai
-import json
-import sys
-import os
-sys.path.insert(1, os.path.join(sys.path[0], ".."))
+import numpy as np 
 from utils import * 
 
-with open("misc/api_key.txt") as f:
-    openai.api_key = f.readline()
+def create_prompt(f,x_names,x,u,data,subject,objective_description,prev_justifications):
+    prompt =  " You are an expert in " + subject + " You have been the following context:\n"
+    objective = objective_description
+    prompt += objective + '\n'
+
+    prompt += " You must select the best solution to achieve this goal from a set of " + str(len(x)) + " alternatives."
+    prompt += " The true objective function for each solution is unknown."
+    prompt += " Each solution is associated with a utility value, which quantifies how much the computer believes the solution is the best, this is different from the underlying objective, which is unknown"
+    prompt += " The utility values are calculated with no regard to the physical meaning of the solutions."
+    prompt += " You must condition these values with your own expertise in " + subject + " which will inform your final decision."
+    prompt += " If the utility values are the same or similar, then you MUST take into account the physical meaning of the specific variables."
+    prompt += " Do not just select a solution solely based on the utility value, you absolutely must think step-by-step and consider additional knowledge.\n"
 
 
-def expert_reccomendation(f,x_names,x,u,data,subject,objective_description,model,temperature,prev_justifications):
-
-    context =  " You are an expert in " + subject + "."
-    context += " You are tasked with selecting the best solution from a set of " + str(len(x)) + " alternative solutions."
-    context += " A set of alternative solutions to achieve this goal is provided to you."
-    context += " What follows is a description of what is provided to you for each alternate solution: \n\n"
-
-    context += " Decision variables (x): in order, these describe " + ''.join([x_names[i]+', ' for i in range(len(x_names)-1)])+ "and " + x_names[-1] + ".\n"
-    context += " Utility (U(x)): the value of the acquisition function/utility function for a given solution. This value is calculated as a function of the predictive distribution of the objective of a solution.\n"
-    context += " U(x) considers the exploration-exploration trade-off, where a higher value is more attractive, and theoretically a better choice.\n"
-    context += " However, you must condition these value with your own expertise in " + subject + " which will inform your final decision."
-    context += " As a large-language model you have access to additional information, physical insight, and real-world knowledge, that the calculation of utility did not consider."
-    context += " Importantly, you must consider how each solution will perform in the real world and how it relates to the objective. The utility quantities provided have been calculated with no account of physical knowledge, you must be sceptical with respect to these values in light of your knowledge."
-    context += " You must consider the relative differences between the information provided for each solution, and how this relates to the objective, as well as the physical differences between the solutions."
-    context += " You must be neutral as to whether the physical knowledge you understand regarding the solutions outweighs the utility values, or vice versa."
-    context += " You must think clearly, logically, and step-by-step to select the best option from the alternative solutions provided, selecting that one that you think will optimisation objective."
-
-
-    user_prompt = f'''
-    Variables (x): {''.join([x_names[i]+', ' for i in range(len(x_names)-1)])+ "and " + x_names[-1]}\n
-    '''
-    # rounding solutions to save tokens
     round = 3
     for i in range(len(x)):
         for j in range(len(x[i])):
             x[i][j] = np.round(x[i][j],round)
 
+    u_ind = np.argsort(-np.array(u))
+    order_endings = ['st','nd','rd','th']
+    # order_endings = [order_endings[i] for i in range(len(u_ind))]
+
     for i in range(len(x)):
         sol_str = ''.join([x_names[j]+': '+ str(np.round(x[i][j],round)) +', ' for j in range(len(x[i]))])
-        user_prompt += f'''Solution {str(i+1)}: {sol_str}, Utility value, U(x) = {u[i]} \n'''
-    user_prompt += '\nNote that higher values of U(x) are more attractive, and theoretically better choices.\n'
-    objective = '\nOptimisation Objective: '  + objective_description
-    user_prompt += objective
-
+        best_ind = u_ind[i]
+        prompt += f'''Solution {str(i+1)}: {sol_str}, Utility value, U(x) = {u[i]} ({best_ind+1}{order_endings[best_ind]} best)\n'''
+    
     prev_data_len = len(data['previous_iterations'])
 
-    user_prompt += f'''Below is a JSON object containing the previous {str(prev_data_len)} iterations of the optimisation process, the inputs are respective to the variables described above, and the outputs are the objective function values.'''
+    prompt += f'''
+    Below is a JSON object containing the previous {str(prev_data_len)} iterations of the optimisation process, the inputs are respective to the variables described above, and the outputs are the objective function values.
+    You are welcome to use this information in an attempt to infer which of the alternative solutions will have the highest objective function.\n
+    '''
     if prev_justifications == True:
-        user_prompt += '''
+        prompt += '''
         This may include your previous justifiction given for selecting a datapoint. 
-        Your previous reasoning may or may not be correct, but it is important to consider the reasoning you gave for your previous selections.
-        You may need to adapt your old reasoning in light of new information. 
-        Please do not repeat a justification unless you are sure it is correct, think creatively and logically about the problem.
         '''
-    # round every value in data to save tokens
     clean_data = []
     for i in range(prev_data_len):
         x_clean = {}
@@ -72,26 +60,58 @@ def expert_reccomendation(f,x_names,x,u,data,subject,objective_description,model
             except:
                 continue
     data = {'previous_iterations':clean_data}
-    user_prompt += json.dumps(data) + '\n'
+    prompt += "\n" + json.dumps(data) + '\n'
 
-    user_prompt += '''
-    Provide your response as a JSON object ONLY. Do not include any additional text.
-    The JSON object must contain the key "choice" and the value as the index of the best alternative. 
-    The other key is named 'reason' and must be a brief and concise explanation of your reasoning (approx 50 words), with respect to the additional physical knowledge you have considered.
+    prompt += '''
+    Provide your response as a JSON object containing the key "choice" and the key "reason"
+    "choice": the index of the solution you believe is the best (1-indexed)
+    "reason": a minimum 20 and maximum 30 word explanation of your reasoning for selecting the solution indexed in "choice".
+
+    Reasoning Rules:
+    The reasoning CANNOT contain reference to your status as an expert. 
+    The reasoning CANNOT reference the objective function of a solution, because this information is unknown.
+    The reasoning CANNOT reference only the utility function value. 
+    You must make specific reference to the individual variables and their respective values.
+
+    JSON: 
     '''
-    print(user_prompt)
-    messages=[
-        {"role": "system", "content": context},
-        {"role": "user", "content": user_prompt},
-    ]
+    return prompt
 
-    response = openai.ChatCompletion.create(
-        model=model,
-        messages=messages,
-        temperature=temperature
-    )
+def run_prompt(llm,prompt):
+    if llm.__class__ != str: 
+        res = []
+        for token in llm(prompt, max_tokens=256,temperature = 0.3,stop=['}'],stream=True, echo=False):
+            latest_token = token['choices'][0]['text']
+            res.append(latest_token)
+            print(latest_token,end="")
+        res = post_process_local(res)
+    else:
+        messages=[
+                {"role": "user", "content": prompt},
+            ]
 
-    response_message = response["choices"][0]["message"]['content']
-    print(response_message)
-    return response_message
+        with open("misc/api_key.txt") as f:
+            openai.api_key = f.readline()
 
+        response = openai.ChatCompletion.create(
+            model='gpt-3.5-turbo-0613',
+            messages=messages,
+            temperature=0.3
+        )
+        response_message = response["choices"][0]["message"]['content']
+        res = post_process_remote(response_message)
+    return res 
+
+
+
+def post_process_local(res):
+    res = ''.join(res)
+    res = res.replace('\n','')
+    res = '{'+ res.split('{')[-1] + '}'
+    res = json.loads(res)
+    return res
+
+
+def post_process_remote(res):
+    res = json.loads(res)
+    return res

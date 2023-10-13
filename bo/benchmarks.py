@@ -15,16 +15,11 @@ from function_creation.materials_functions import *
 import multiprocessing as mp
 import gc 
 import resource
-
-try:
-    arg_check = sys.argv[1]
-    local = False
-except:
-    local = True
+import argparse
 
 aqs = {'EI':EI,'UCB':UCB}
 
-def specific_functions():
+def specific_functions(array_index,b_index):
     res_path = 'bo/benchmark_results_specific/'
     try:
         os.mkdir(res_path)
@@ -50,23 +45,10 @@ def specific_functions():
         f_store.append(Rosenbrock(i))
         f_store.append(Powell(i))
 
-    if local == False:
-        repeats = 16
-        '''
-        # designed to be run as an array job
-        # array index 1-256 (for the 16 repeats for 16 functions)
-        # b_index as an argument between 0-5 (for the 5 behaviours)
-        '''
+    repeats = 16 
+    f_key = array_index // repeats
+    repeat = array_index % repeats
 
-        array_index = int(sys.argv[1])
-        f_key = array_index // repeats
-        repeat = array_index % repeats
-        b_index = int(sys.argv[2])
-
-    if local == True:
-        f_key = 0 
-        repeat = 0
-        b_index = 0
 
     f = f_store[f_key]
     file = f.name + '_' + str(uuid.uuid4())
@@ -84,7 +66,7 @@ def specific_functions():
 
 #specific_functions()
 
-def rkhs_functions():
+def rkhs_functions(array_index, b_index):
     res_path = 'bo/benchmark_results_rkhs/'
     try:
         os.mkdir(res_path)
@@ -105,27 +87,16 @@ def rkhs_functions():
     f_keys = pd.read_csv('function_creation/f_keys.csv')['f_keys'].values
     f_count = len(f_keys)
     d_store = [1,2,5,10]
-
-    if local == False:
-        array_index = int(sys.argv[1])
-        f_key = array_index // len(d_store)
-        d_ind = array_index % len(d_store)
-        d = d_store[d_ind]
-
-        b_index = int(sys.argv[2])
-        
-    if local == True:
-        d = 1
-        problem_data['dim'] = d
-        b_index = 0 
-        f_key = 0
-
+    
+    f_key = array_index // len(d_store)
+    d_ind = array_index % len(d_store)
+    d = d_store[d_ind]
+    problem_data['dim'] = d
 
     problem_data['human_behaviour'] = human_behaviours[b_index]
     key = random.PRNGKey(f_keys[f_key])
     f = Function(create_problem(key,0.04,problem_data['dim']))
 
-    problem_data['dim'] = d
     file = str(uuid.uuid4())
     path = res_path + file + "/"
     problem_data['file_name'] = path
@@ -137,10 +108,10 @@ def rkhs_functions():
         problem_data
     )
 
-rkhs_functions()
+# rkhs_functions()
 
 
-def real_functions():
+def real_functions(array_index,b_index):
     res_path = 'bo/benchmark_results_real/'
     try:
         os.mkdir(res_path)
@@ -157,7 +128,7 @@ def real_functions():
         f = Perovskite(8)
         return f
     def create_AutoAM():
-        f = AutoAM(8)
+        f = AutoAM(1)
         return f
     def create_CrossedBarrel():
         f = CrossedBarrel(1)
@@ -165,40 +136,32 @@ def real_functions():
     f_list = [create_P3HT,create_AgNP,create_Perovskite,create_AutoAM,create_CrossedBarrel]
 
     repeats = 8 
+    f_key = array_index // repeats
+    repeat = array_index % repeats
 
     human_behaviours = ['llmbo',0.33,'expert','trusting']
 
     aq = 'UCB'
     problem_data = {}
-    problem_data["sample_initial"] = 4
-    problem_data["gp_ms"] = 16
-    problem_data["alternatives"] = 4
-    problem_data["NSGA_iters"] = 400
-    problem_data['max_iterations'] = 80
-    problem_data['gpt'] = 3.5
+    problem_data["sample_initial"] = 8
+    problem_data["gp_ms"] = 8
+    problem_data["alternatives"] = 3
+    problem_data["NSGA_iters"] = 500
+    problem_data['max_iterations'] = 50
     problem_data['acquisition_function'] = aq
     problem_data['time_created'] = str(datetime.datetime.now())
-
-    if local == False:
-        array_index = int(sys.argv[1])
-        f_index = array_index // repeats
-        repeat = array_index % repeats
-        b_index = int(sys.argv[2]) # per job script 
-    if local == True:
-        b_index = 1
-        f_index = 1
-        repeat = 0 
-
+    
     problem_data['human_behaviour'] = human_behaviours[b_index]
-    f = f_list[f_index]()
+    f = f_list[f_key]()
     problem_data['repeat'] = repeat
     problem_data['x_names'] = f.x_names
     problem_data['expertise'] = f.expertise
     problem_data['objective_description'] = f.objective_description
     problem_data['function'] = f.name
     problem_data['dim'] = f.dim
+    problem_data['llm_location'] = 'remote'
     problem_data['human_behaviour'] = human_behaviours[b_index]
-    problem_data['include_previous_justification'] = True 
+    problem_data['include_previous_justification'] = False
     file = f.name + '_' + str(uuid.uuid4())
     path = res_path + file + "/"
     problem_data['file_name'] = path
@@ -209,5 +172,27 @@ def real_functions():
         problem_data
     )
 
-# real_functions()
+#real_functions()
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description="Run specific function.")
+    parser.add_argument('--function', type=str, required=True, help="Function name to run.")
+    parser.add_argument('--array_index', type=str, required=False, help="First index.")
+    parser.add_argument('--behaviour_index', type=str, required=False, help="Behaviour index.")
+
+    try:
+        args = parser.parse_args()
+    except:
+        rkhs_functions(0,0)
+    
+    a_i = int(args.array_index)
+    b_i = int(args.behaviour_index)
+
+    if args.function == "real_functions":
+        real_functions(a_i,b_i)
+    elif args.function == "rkhs_functions":
+        rkhs_functions(a_i,b_i)
+    elif args.function == "specific_functions":
+        specific_functions(a_i,b_i)
 

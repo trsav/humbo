@@ -22,10 +22,10 @@ from jax.scipy.optimize import minimize
 from tensorflow_probability.substrates import jax as tfp
 import shutil 
 from matplotlib import rc
-plt.rcParams.update({
-    "text.usetex": True,
-    "font.family": "Helvetica"
-})
+
+# plt.rcParams.update({ "text.usetex": True,
+#     "font.family": "Helvetica"
+# })
 
 tfd = tfp.distributions
 
@@ -873,7 +873,10 @@ def plot_regret_llmbo(problem_data,axs,c,directory,function):
 
     # create dataframe from list of dictionaries 
     df = pd.DataFrame(problem_data_list)
-    df = df.loc[(df['human_behaviour'] == problem_data['human_behaviour'])]
+    try:
+        df = df.loc[(df['human_behaviour'] == problem_data['human_behaviour'])]
+    except:
+        return 
 
     file_names = df['file_name'].values
     regret_list = []
@@ -945,7 +948,7 @@ def plot_regret_llmbo(problem_data,axs,c,directory,function):
 
 
 def plot_llmbo():
-    directory = 'bo/benchmark_llmbo_results'
+    directory = 'bo/benchmark_results_real'
     colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
     human_behaviours = ['expert','trusting','llmbo',0.33]
     # human_behaviours = ['llmbo']
@@ -992,6 +995,9 @@ def plot_llmbo():
 
         #axs[0].set_yscale('log')
 
-
-        plt.savefig('bo/plots/overall_regret_'+function+'.pdf')
-# plot_llmbo()
+        try:
+            plt.savefig('bo/plots/overall_regret_'+function+'.pdf')
+        except FileNotFoundError:
+            os.mkdir('bo/plots')
+            plt.savefig('bo/plots/overall_regret_'+function+'.pdf')
+#plot_llmbo()

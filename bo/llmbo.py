@@ -14,7 +14,6 @@ import uuid
 from pymoo.optimize import minimize as minimize_mo
 from reccomender import * 
 
-
 def llmbo(
     f,
     f_aq,
@@ -48,7 +47,7 @@ def llmbo(
 
         data["data"].append(run_info)
 
-        save_json(data, data_path)
+    save_json(data, data_path)
 
     data = read_json(data_path)
     for i in range(len(data['data'])):
@@ -62,6 +61,8 @@ def llmbo(
     save_json(data, data_path)
 
     iteration = len(data["data"]) - 1
+    if problem_data['human_behaviour'] == 'llmbo' and problem_data['llm_location'] == 'local':
+        llm = Llama(model_path="llama.cpp/models/13B/ggml-model-q8_0.gguf",n_ctx=4096,n_gpu_layers=-1)
     while len(data['data']) < problem_data['max_iterations']:
         
             
@@ -203,14 +204,6 @@ def llmbo(
             if problem_data['human_behaviour'] == 'llmbo':
                 x_alternates = list(jnp.split(x_best_utopia, alternatives))
                 x_alternates = [x_alternates[i].tolist() for i in range(alternatives)]
-
-                # # unnormalise x_alternatives for LLM 
-                # # bounds are 0-1 but f.var_bounds contains real
-                # for i in range(alternatives):
-                #     for j in range(len(x_alternates[i])):
-                #         x_alternates[i][j] = x_alternates[i][j] * (f.var_bounds[j][1] - f.var_bounds[j][0]) + f.var_bounds[j][0]
-
-
                 x_names = problem_data['x_names']
                 expertise = problem_data['expertise']
                 obj_desc = problem_data['objective_description']
@@ -220,12 +213,7 @@ def llmbo(
                 aq_list = [np.round(aq_list[i],3) for i in range(alternatives)]
                 previous_iterations = 5
 
-                temperature = 0.5
-                if problem_data['gpt'] == 3.5:
-                    model = 'gpt-3.5-turbo-0613'
-                elif problem_data['gpt'] == 4:
-                    model = 'gpt-4-0613'
-                # data is the last previous iterations 
+
                 prompt_data = {'previous_iterations':data['data'][-previous_iterations:]}
                 for i in range(alternatives):
                     # unnormalise for LLM
@@ -233,7 +221,14 @@ def llmbo(
                     x_alternates[i] = list((np.array(x_alternates[i]) * std_inputs) + mean_inputs)
 
                 prev_just = problem_data['include_previous_justification']
-                response = json.loads(expert_reccomendation(f,x_names,x_alternates,aq_list,prompt_data,expertise,obj_desc,model,temperature,prev_just))
+
+                prompt = create_prompt(f,x_names,x_alternates,aq_list,prompt_data,expertise,obj_desc,prev_just)
+                print(prompt)
+                if problem_data['llm_location'] != 'local':
+                    llm = 'gpt-3.5-turbo-0613'
+
+                response = run_prompt(llm,prompt)
+
                 # response = 'NaN'
                 try:
                     x_opt = np.array([x_alternates[response['choice']-1]])
