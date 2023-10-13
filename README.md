@@ -1,13 +1,7 @@
-<a href="https://www.imperial.ac.uk/optimisation-and-machine-learning-for-process-engineering/about-us/">
-<img src="https://avatars.githubusercontent.com/u/81195336?s=200&v=4" alt="Optimal PSE logo" title="OptimalPSE" align="right" height="150" />
-</a>
-
-## LLM-BO
-
 <!-- include llmbo_dalle.png as an image centered  -->
 
 <p align="center">
-  <img src="llmbo_dalle.png" alt="LLM-BO" width="500"/>
+  <img src="llmbo_dalle.png" alt="LLM-BO" width="300"/>
 </p>
 
 
