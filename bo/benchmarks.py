@@ -137,7 +137,7 @@ def rkhs_functions():
         problem_data
     )
 
-# rkhs_functions()
+rkhs_functions()
 
 
 def real_functions():
@@ -209,5 +209,5 @@ def real_functions():
         problem_data
     )
 
-real_functions()
+# real_functions()
 

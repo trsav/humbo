@@ -994,4 +994,4 @@ def plot_llmbo():
 
 
         plt.savefig('bo/plots/overall_regret_'+function+'.pdf')
-plot_llmbo()
+# plot_llmbo()

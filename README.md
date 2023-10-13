@@ -9,10 +9,17 @@
 
 # Instructions
 
+0. Request and download Llama 2  (13B or 70B) (https://ai.meta.com/llama/)
+
 1. Clone Git repository & install submodules
 ```
 $ git clone --recurse-submodules git@github.com:trsav/llmbo.git
 ```
+2. Create conda environment
+```
+$ conda env create -f environment.yml
+```
+<!-- 
 
 2. Build Docker container from ```Dockerfile``` (~5 mins)
 ```
@@ -21,4 +28,4 @@ $ sudo docker build --tag llmbo .
 3. Run container with volume to store data
 ```
 $ sudo docker run -i -t --mount source=llmbo_volume,target=/llmbo llmbo
-```
+``` -->

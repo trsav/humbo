@@ -19,3 +19,4 @@ benchmarks
 **/*.out
 todo 
 !llmbo_dalle.png
+Dockerfile
