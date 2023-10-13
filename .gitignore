@@ -18,3 +18,4 @@ benchmarks
 !pull_results.sh
 **/*.out
 todo 
+!llmbo_dalle.png
