@@ -7,4 +7,4 @@ module load anaconda3/personal
 cd $PBS_O_WORKDIR
 source activate multi_fidelity_experimental_design_env
 
-python3 bo/benchmark.py --function $function $PBS_ARRAY_INDEX $B
+python3 bo/benchmarks.py --function $function --array_index $PBS_ARRAY_INDEX --behaviour_index $B

@@ -45,7 +45,7 @@ def specific_functions(array_index,b_index):
         f_store.append(Rosenbrock(i))
         f_store.append(Powell(i))
 
-    repeats = 16 
+    repeats = 16
     f_key = array_index // repeats
     repeat = array_index % repeats
 
@@ -86,8 +86,8 @@ def rkhs_functions(array_index, b_index):
 
     f_keys = pd.read_csv('function_creation/f_keys.csv')['f_keys'].values
     f_count = len(f_keys)
-    d_store = [1,2,5,10]
-    
+    d_store = [1,2,5]
+
     f_key = array_index // len(d_store)
     d_ind = array_index % len(d_store)
     d = d_store[d_ind]
