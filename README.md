@@ -2,16 +2,19 @@
 
 <!-- Do the above, but make the image on the right of the readme -->
 
+<!--
 <p align="center">
   <img src="llmbo_dalle.png" alt="LLM-BO" width="300"/>
 </p>
-
+-->
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+### Contains the code for the workshop paper: _Expert-guided Bayesian Optimisation for Human-in-the-loop Experimental Design of Known Systems_
 
 <!-- TODO ADD REMOTE OR LOCAL LLM EXECUTION -->
 # Instructions
 
-0. Request and download Llama 2  (13B or 70B) (https://ai.meta.com/llama/)
+<!-- 0. Request and download Llama 2  (13B or 70B) (https://ai.meta.com/llama/) to run locally -->
 
 1. Clone Git repository & install submodules
 ```

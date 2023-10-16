@@ -128,7 +128,7 @@ def real_functions(array_index,b_index):
         f = Perovskite(8)
         return f
     def create_AutoAM():
-        f = AutoAM(8)
+        f = AutoAM(1)
         return f
     def create_CrossedBarrel():
         f = CrossedBarrel(1)
@@ -137,6 +137,7 @@ def real_functions(array_index,b_index):
 
     repeats = 8 
     f_key = array_index // repeats
+    #f_key = 3
     repeat = array_index % repeats
 
     human_behaviours = ['llmbo',0.33,'expert','trusting']
@@ -159,7 +160,10 @@ def real_functions(array_index,b_index):
     problem_data['objective_description'] = f.objective_description
     problem_data['function'] = f.name
     problem_data['dim'] = f.dim
-    problem_data['llm_location'] = 'remote'
+    #problem_data['llm_location'] = 'remote'
+    #problem_data['llm_location'] = "llama.cpp/models/13B/ggml-model-q8_0.gguf"
+    problem_data['llm_location'] = "llama.cpp/models/zephyr-7b-alpha.Q4_K_M.gguf"
+
     problem_data['human_behaviour'] = human_behaviours[b_index]
     problem_data['include_previous_justification'] = False
     file = f.name + '_' + str(uuid.uuid4())
@@ -184,7 +188,8 @@ if __name__ == "__main__":
     try:
         args = parser.parse_args()
     except:
-        rkhs_functions(0,0)
+        # rkhs_functions(0,0)
+        real_functions(3,0)
     
     a_i = int(args.array_index)
     b_i = int(args.behaviour_index)
