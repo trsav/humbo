@@ -1,5 +1,5 @@
 function="rkhs_functions"
-A_TOTAL="150"
+A_TOTAL="300"
 
 log_path="${function}_logs"
 

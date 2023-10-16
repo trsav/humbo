@@ -32,8 +32,8 @@ def specific_functions(array_index,b_index):
     problem_data["sample_initial"] = 4
     problem_data["gp_ms"] = 16
     problem_data["alternatives"] = 4
-    problem_data["NSGA_iters"] = 400
-    problem_data['max_iterations'] = 80
+    problem_data["NSGA_iters"] = 1000
+    problem_data['max_iterations'] = 60
     problem_data['acquisition_function'] = aq
     problem_data['time_created'] = str(datetime.datetime.now())
 
@@ -79,9 +79,9 @@ def rkhs_functions(array_index, b_index):
     problem_data["sample_initial"] = 4
     problem_data["gp_ms"] = 16
     problem_data["alternatives"] = 4
-    problem_data["NSGA_iters"] = 400
-    problem_data['deterministic_initial'] = True
-    problem_data['max_iterations'] = 80
+    problem_data["NSGA_iters"] = 1000
+    problem_data['deterministic_initial'] = 'true'
+    problem_data['max_iterations'] = 60
     problem_data['acquisition_function'] = aq
     problem_data['time_created'] = str(datetime.datetime.now())
 
@@ -110,7 +110,6 @@ def rkhs_functions(array_index, b_index):
     )
 
 # rkhs_functions()
-
 
 def real_functions(array_index,b_index):
     res_path = 'bo/benchmark_results_real/'

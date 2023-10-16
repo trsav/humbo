@@ -35,11 +35,11 @@ def llmbo(
     try:
         det_init = problem_data["deterministic_initial"]
     except:
-        det_init = False
-    if det_init == True:
+        det_init = 'false'
+    if det_init == 'true':
         key = 0 # key for deterministic initial sample for expectation over functions
         samples = lhs(jnp.array(x_bounds), sample_initial,key)
-    elif det_init == False:
+    elif det_init == 'false':
         samples = numpy_lhs(jnp.array(x_bounds), sample_initial)
 
     data = {"data": []}

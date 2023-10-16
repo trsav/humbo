@@ -584,9 +584,9 @@ def plot_human(aq,d,max_it):
         os.mkdir('bo/plots')
 
 # plot_human('EI',1)
-plot_human('UCB',1,30)
-plot_human('UCB',2,80)
-plot_human('UCB',5,140)
+# plot_human('UCB',1,30)
+# plot_human('UCB',2,80)
+# plot_human('UCB',5,140)
 # plot_human('UCB',10,140)
 
 def plot_human_specific():
