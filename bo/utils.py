@@ -154,13 +154,13 @@ def numpy_lhs(bounds: list, p: int):
     return sample
 
 
-def lhs(bounds: list, p: int):
+def lhs(bounds: list, p: int,key):
     d = len(bounds)
 
     sample = []
     for i in range(0, d):
         s = jnp.linspace(bounds[i, 0], bounds[i, 1], p)
-        s = jax.random.shuffle(jax.random.PRNGKey(np.random.randint(0,1000)), s)
+        s = jax.random.shuffle(jax.random.PRNGKey(key), s)
         sample.append(s)
     sample = jnp.array(sample).T
 
@@ -584,9 +584,10 @@ def plot_human(aq,d,max_it):
         os.mkdir('bo/plots')
 
 # plot_human('EI',1)
-# plot_human('UCB',1,60)
-# plot_human('UCB',2,80)
-# plot_human('UCB',5,140)
+plot_human('UCB',1,30)
+plot_human('UCB',2,80)
+plot_human('UCB',5,140)
+# plot_human('UCB',10,140)
 
 def plot_human_specific():
     directory = 'bo/benchmark_results_specific'
