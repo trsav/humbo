@@ -126,7 +126,7 @@ def llmbo(
 
         if problem_data['human_behaviour'] == 'trusting':
             x_opt = x_opt_aq
-            print(x_opt)
+            x_opt = list((np.array(x_opt) * std_inputs) + mean_inputs)
 
         else:
 
@@ -201,10 +201,13 @@ def llmbo(
             best_D_sol = np.argmin(D)
             utopia_sol = np.argmin(distances)
 
+            x_alternates = list(jnp.split(x_best_utopia, alternatives))
+            x_alternates = [x_alternates[i].tolist() for i in range(alternatives)]
+            for i in range(alternatives):
+                # unnormalise alternative solutions
+                x_alternates[i] = list((np.array(x_alternates[i]) * std_inputs) + mean_inputs)
 
             if problem_data['human_behaviour'] == 'llmbo':
-                x_alternates = list(jnp.split(x_best_utopia, alternatives))
-                x_alternates = [x_alternates[i].tolist() for i in range(alternatives)]
                 x_names = problem_data['x_names']
                 expertise = problem_data['expertise']
                 obj_desc = problem_data['objective_description']
@@ -214,23 +217,19 @@ def llmbo(
                 aq_list = [np.round(aq_list[i],3) for i in range(alternatives)]
                 previous_iterations = 5
 
-
                 prompt_data = {'previous_iterations':data['data'][-previous_iterations:]}
-                for i in range(alternatives):
-                    # unnormalise for LLM
-                    b_array = np.array(bounds)
-                    x_alternates[i] = list((np.array(x_alternates[i]) * std_inputs) + mean_inputs)
 
                 prev_just = problem_data['include_previous_justification']
 
                 prompt = create_prompt(f,x_names,x_alternates,aq_list,prompt_data,expertise,obj_desc,prev_just)
+
                 print(prompt)
-                if problem_data['llm_location'] != 'local':
+                if problem_data['llm_location'] == 'remote':
                     llm = 'gpt-3.5-turbo-0613'
 
                 response = run_prompt(llm,prompt)
+                print(response)
 
-                # response = 'NaN'
                 try:
                     x_opt = np.array([x_alternates[response['choice']-1]])
                     bad_flag = False
@@ -241,19 +240,15 @@ def llmbo(
 
             if problem_data['human_behaviour'] == 'expert':
                 f_utopia = []
-                x_tests = jnp.array(jnp.split(x_best_utopia, alternatives))
                 for i in range(alternatives):
-                    f_utopia.append(f(x_tests[i]))
-                x_opt = np.array([x_tests[np.argmax(f_utopia)]])
-                x_opt = list((np.array(x_opt) * std_inputs) + mean_inputs)
+                    f_utopia.append(f(x_alternates[i]))
+                x_opt = np.array([x_alternates[np.argmax(f_utopia)]])
 
             if problem_data['human_behaviour'] == 'adversarial':
                 f_utopia = []
-                x_tests = jnp.array(jnp.split(x_best_utopia, alternatives))
                 for i in range(alternatives):
-                    f_utopia.append(f(x_tests[i]))
-                x_opt = np.array([x_tests[np.argmin(f_utopia)]])
-                x_opt = list((np.array(x_opt) * std_inputs) + mean_inputs)
+                    f_utopia.append(f(x_alternates[i]))
+                x_opt = np.array([x_alternates[np.argmin(f_utopia)]])
             
 
             if problem_data['human_behaviour'].__class__ == float:
@@ -261,19 +256,16 @@ def llmbo(
                     raise ValueError("Human behaviour must be between 0 and 1")
                 
                 f_utopia = []
-                x_tests = jnp.array(jnp.split(x_best_utopia, alternatives))
                 for i in range(alternatives):
-                    f_utopia.append(f(x_tests[i]))
+                    f_utopia.append(f(x_alternates[i]))
 
                 best_index = np.argmax(f_utopia)
                 probability_of_correct = np.random.uniform()
                 if probability_of_correct < problem_data['human_behaviour']:
-                    x_opt = np.array([x_tests[best_index]])
-                    x_opt = list((np.array(x_opt) * std_inputs) + mean_inputs)
+                    x_opt = np.array([x_alternates[best_index]])
                 else:
-                    x_tests = np.delete(x_tests,best_index,axis=0)
-                    x_opt = np.array([x_tests[np.random.randint(0,alternatives-1)]])
-                    x_opt = list((np.array(x_opt) * std_inputs) + mean_inputs)
+                    x_tests = np.delete(x_alternates,best_index,axis=0)
+                    x_opt = np.array([x_alternates[np.random.randint(0,alternatives-1)]])
 
         if d == 1:
             x_opt = [x_opt[0].item()]

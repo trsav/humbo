@@ -40,7 +40,7 @@ def create_prompt(f,x_names,x,u,data,subject,objective_description,prev_justific
     '''
     if prev_justifications == True:
         prompt += '''
-        This may include your previous justifiction given for selecting a datapoint. 
+        This may include your previous justifiction given for selecting a datapoint. Consider previous justifications, they may be wrong, but they may also be correct.
         '''
     clean_data = []
     for i in range(prev_data_len):

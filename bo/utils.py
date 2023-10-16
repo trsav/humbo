@@ -654,7 +654,7 @@ def plot_human_specific():
 
         plt.savefig('bo/plots/overall_regret_'+function+'.pdf')
 
-# plot_human_specific()
+#plot_human_specific()
 
 def plot_regret_batch(problem_data,axs,c,directory):
     
