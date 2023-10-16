@@ -17,4 +17,5 @@ benchmarks
 **/*.out
 todo 
 !llmbo_dalle.png
+**/*_logs
 Dockerfile
