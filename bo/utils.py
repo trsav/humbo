@@ -331,7 +331,7 @@ def plot_regret(problem_data,axs,c,directory,max_it):
     obj_list = []
     f_opt_list = []
     for file in file_names:
-        file = file.split('results/')[1]
+        file = file.split('rkhs/')[1]
         file = directory + '/' +  file 
         data_full = read_json(file+'res.json')
         data = data_full['data']
@@ -535,7 +535,7 @@ def plot_regret_specific(problem_data,axs,c,directory,function):
 
 
 def plot_human(aq,d,max_it):
-    directory = 'bo/benchmark_results'
+    directory = 'bo/benchmark_results_rkhs'
     colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
     human_behaviours = ['expert','adversarial','trusting',0.75,0.5,0.25]
 
@@ -546,19 +546,18 @@ def plot_human(aq,d,max_it):
         # for this problem data
         problem_data = {}
         problem_data["sample_initial"] = 4
-        problem_data["gp_ms"] = 8
-        problem_data["alternatives"] = 4
-        problem_data["NSGA_iters"] = 75
-        problem_data["plotting"] = True
-        problem_data['max_iterations'] = 150
-        problem_data['lengthscale'] = 0.3
+        problem_data['max_iterations'] = 80
         #problem_data['lengthscale'] = 0.8
         problem_data['dim'] = d
         # at a given human behaviour
         problem_data['human_behaviour'] = human_behaviours[i]
         problem_data['acquisition_function'] = aq
 
-        plot_regret(problem_data,axs,colors[i],directory,max_it)
+        try:
+            plot_regret(problem_data,axs,colors[i],directory,max_it)
+            plt.savefig('bo/plots/rkhs_d_'+str(d)+'.pdf')
+        except:
+            pass
     fs = 12
     axs[0].set_ylabel(r"Simple Regret, $r_\tau$",fontsize=fs)
     for ax in axs:
@@ -575,12 +574,14 @@ def plot_human(aq,d,max_it):
     lines, labels = axs[0].get_legend_handles_labels()
     fig.legend(lines, labels, loc='lower center', bbox_to_anchor=(0.5, 0.875), ncol=6,frameon=False)
 
-    l = problem_data['lengthscale']
 
     #fig.suptitle(r'Regret expectation over 50 functions, $f \sim \mathcal{GP}(\mu \equiv 0, K_M (d,\nu = '+str(l)+'))$, '+str(problem_data['alternatives'])+' alternate choices, $\mathcal{U}(x)=$'+str(aq)+r', $x \in R^'+str(problem_data['dim'])+'$',fontsize=int(fs))
     fig.tight_layout()
     fig.subplots_adjust(top = 0.875)
-    plt.savefig('bo/plots/overall_regret_aq_'+str(aq)+'_d_'+str(d)+'.pdf')
+    try:
+        plt.savefig('bo/plots/rkhs_d_'+str(d)+'.pdf')
+    except:
+        os.mkdir('bo/plots')
 
 # plot_human('EI',1)
 # plot_human('UCB',1,60)
