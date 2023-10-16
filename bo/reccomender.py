@@ -65,10 +65,11 @@ def create_prompt(f,x_names,x,u,data,subject,objective_description,prev_justific
     prompt += '''
     Provide your response ONLY as a JSON object containing the key "choice" and the key "reason"
     "choice": the index of the solution you believe is the best (1-indexed)
-    "reason": a minimum 20 and maximum 30 word explanation of your reasoning for selecting the solution indexed in "choice".
+    "reason": a minimum 10 and maximum 30 word explanation of your reasoning for selecting the solution indexed in "choice".
 
     Reasoning Rules:
     The reasoning CANNOT contain reference to your status as an expert, it must start from the reason itself.
+    The reasoning MUST be an appropriate and concise size.
     The reasoning CANNOT reference the objective function of a solution, because this information is unknown.
     The reasoning CANNOT reference ONLY the utility function value but you SHOULD use relative utility values for justification.
     You must make specific reference to the individual variables and their respective values.

@@ -137,7 +137,6 @@ def real_functions(array_index,b_index):
 
     repeats = 8 
     f_key = array_index // repeats
-    f_key = 3
     repeat = array_index % repeats
 
     human_behaviours = ['llmbo',0.33,'expert','trusting']
@@ -147,7 +146,7 @@ def real_functions(array_index,b_index):
     problem_data["sample_initial"] = 8
     problem_data["gp_ms"] = 8
     problem_data["alternatives"] = 3
-    problem_data["NSGA_iters"] =750
+    problem_data["NSGA_iters"] = 750
     problem_data['max_iterations'] = 50
     problem_data['acquisition_function'] = aq
     problem_data['time_created'] = str(datetime.datetime.now())
@@ -167,6 +166,17 @@ def real_functions(array_index,b_index):
 
     problem_data['human_behaviour'] = human_behaviours[b_index]
     problem_data['include_previous_justification'] = False
+    file = f.name + '_' + str(uuid.uuid4())
+    path = res_path + file + "/"
+    problem_data['file_name'] = path
+        
+    llmbo(
+        f,
+        aqs[aq],
+        problem_data
+    )
+
+    problem_data['include_previous_justification'] = True
     file = f.name + '_' + str(uuid.uuid4())
     path = res_path + file + "/"
     problem_data['file_name'] = path
