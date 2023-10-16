@@ -80,6 +80,7 @@ def rkhs_functions(array_index, b_index):
     problem_data["gp_ms"] = 16
     problem_data["alternatives"] = 4
     problem_data["NSGA_iters"] = 400
+    problem_data['deterministic_initial'] = True
     problem_data['max_iterations'] = 80
     problem_data['acquisition_function'] = aq
     problem_data['time_created'] = str(datetime.datetime.now())
@@ -128,7 +129,7 @@ def real_functions(array_index,b_index):
         f = Perovskite(8)
         return f
     def create_AutoAM():
-        f = AutoAM(8)
+        f = AutoAM(1)
         return f
     def create_CrossedBarrel():
         f = CrossedBarrel(1)
@@ -161,8 +162,8 @@ def real_functions(array_index,b_index):
     problem_data['function'] = f.name
     problem_data['dim'] = f.dim
     #problem_data['llm_location'] = 'remote'
-    #problem_data['llm_location'] = "llama.cpp/models/13B/ggml-model-q8_0.gguf"
-    problem_data['llm_location'] = "llama.cpp/models/zephyr-7b-alpha.Q4_K_M.gguf"
+    problem_data['llm_location'] = "llama.cpp/models/13B/ggml-model-q8_0.gguf"
+    #problem_data['llm_location'] = "llama.cpp/models/zephyr-7b-alpha.Q4_K_M.gguf"
 
     problem_data['human_behaviour'] = human_behaviours[b_index]
     problem_data['include_previous_justification'] = False
@@ -201,7 +202,7 @@ if __name__ == "__main__":
     except:
         # rkhs_functions(0,0)
         for b in range(4):
-            real_functions(3,0)
+            real_functions(2,0)
         # specific_functions(0,2)
     
     a_i = int(args.array_index)
