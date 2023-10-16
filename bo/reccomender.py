@@ -63,14 +63,14 @@ def create_prompt(f,x_names,x,u,data,subject,objective_description,prev_justific
     prompt += "\n" + json.dumps(data) + '\n'
 
     prompt += '''
-    Provide your response as a JSON object containing the key "choice" and the key "reason"
+    Provide your response ONLY as a JSON object containing the key "choice" and the key "reason"
     "choice": the index of the solution you believe is the best (1-indexed)
     "reason": a minimum 20 and maximum 30 word explanation of your reasoning for selecting the solution indexed in "choice".
 
     Reasoning Rules:
-    The reasoning CANNOT contain reference to your status as an expert. 
+    The reasoning CANNOT contain reference to your status as an expert, it must start from the reason itself.
     The reasoning CANNOT reference the objective function of a solution, because this information is unknown.
-    The reasoning CANNOT reference only the utility function value. 
+    The reasoning CANNOT reference ONLY the utility function value but you SHOULD use relative utility values for justification.
     You must make specific reference to the individual variables and their respective values.
 
     JSON: 
@@ -80,7 +80,7 @@ def create_prompt(f,x_names,x,u,data,subject,objective_description,prev_justific
 def run_prompt(llm,prompt):
     if llm.__class__ != str: 
         res = []
-        for token in llm(prompt, max_tokens=256,temperature = 0.3,stop=['}'],stream=True, echo=False):
+        for token in llm(prompt, max_tokens=512,temperature = 0.1,stop=['}'],stream=True, echo=False):
             latest_token = token['choices'][0]['text']
             res.append(latest_token)
             print(latest_token,end="")
@@ -105,11 +105,17 @@ def run_prompt(llm,prompt):
 
 
 def post_process_local(res):
+    print(res)
     res = ''.join(res)
     res = res.replace('\n','')
+    res = res.replace('\t','')
     res = '{'+ res.split('{')[-1] + '}'
-    res = json.loads(res)
-    return res
+    try:
+        res = json.loads(res)
+        return res
+    except:
+        print('Invalid JSON, failing to standard BO....')
+        return {'choice': 'NaN','reason': 'NaN'}
 
 
 def post_process_remote(res):
