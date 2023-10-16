@@ -126,7 +126,7 @@ def llmbo(
 
         if problem_data['human_behaviour'] == 'trusting':
             x_opt = x_opt_aq
-            print(x_opt)
+            x_opt = list((np.array(x_opt) * std_inputs) + mean_inputs)
 
         else:
 
@@ -225,7 +225,7 @@ def llmbo(
 
                 prompt = create_prompt(f,x_names,x_alternates,aq_list,prompt_data,expertise,obj_desc,prev_just)
                 print(prompt)
-                if problem_data['llm_location'] != 'local':
+                if problem_data['llm_location'] == 'remote':
                     llm = 'gpt-3.5-turbo-0613'
 
                 response = run_prompt(llm,prompt)

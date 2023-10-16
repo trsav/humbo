@@ -147,12 +147,13 @@ def real_functions(array_index,b_index):
     problem_data["sample_initial"] = 8
     problem_data["gp_ms"] = 8
     problem_data["alternatives"] = 3
-    problem_data["NSGA_iters"] = 500
+    problem_data["NSGA_iters"] = 100
     problem_data['max_iterations'] = 50
     problem_data['acquisition_function'] = aq
     problem_data['time_created'] = str(datetime.datetime.now())
     
     problem_data['human_behaviour'] = human_behaviours[b_index]
+    #f_key = 3
     f = f_list[f_key]()
     problem_data['repeat'] = repeat
     problem_data['x_names'] = f.x_names
@@ -189,7 +190,8 @@ if __name__ == "__main__":
         args = parser.parse_args()
     except:
         # rkhs_functions(0,0)
-        real_functions(3,0)
+        # real_functions(3,0)
+        specific_functions(0,2)
     
     a_i = int(args.array_index)
     b_i = int(args.behaviour_index)
