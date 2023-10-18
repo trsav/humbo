@@ -16,7 +16,8 @@ import uuid
 from pymoo.optimize import minimize
 from scipy.optimize import minimize as scipy_minimize
 import sys
-
+from function_creation.create_problem import * 
+from function_creation.function import *
 
 
 def log_variable_sizes(local_vars):
@@ -499,3 +500,27 @@ def bo(
             fig.tight_layout()
             fig.savefig(path + "/regret.pdf")
             plt.close()
+
+
+aq = 'UCB'
+problem_data = {}
+problem_data["sample_initial"] = 4
+problem_data["gp_ms"] = 16
+problem_data["alternatives"] = 4
+problem_data["NSGA_iters"] = 1000
+problem_data['deterministic_initial'] = 'true'
+problem_data['max_iterations'] = 60
+problem_data['acquisition_function'] = 'UCB'
+problem_data['time_created'] = str(datetime.datetime.now())
+
+problem_data['dim'] = 1
+problem_data['human_behaviour'] = 'expert'
+
+f = Function(create_problem(0,0.04,problem_data['dim']))
+
+file = "plots/"
+problem_data['file_name'] = '1D_vis'
+problem_data['function'] = file
+
+aqs = {'UCB':UCB,'EI':EI}
+bo(f, aqs[aq], problem_data)

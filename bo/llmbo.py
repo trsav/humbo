@@ -37,15 +37,19 @@ def llmbo(
     except:
         det_init = 'false'
     if det_init == 'true':
-        key = 0 # key for deterministic initial sample for expectation over functions
-        samples = lhs(jnp.array(x_bounds), sample_initial,key)
+        lhs_key = 0 # key for deterministic initial sample for expectation over functions
+        jnp_samples = lhs(jnp.array(x_bounds), sample_initial,lhs_key)
+        samples = []
+        for i in range(sample_initial):
+            samples.append(list([float(s) for s in jnp_samples[i]]))
     elif det_init == 'false':
         samples = numpy_lhs(jnp.array(x_bounds), sample_initial)
+
+    problem_data['deterministic_initial'] = str(det_init)
 
     data = {"data": []}
 
     for sample in samples:
-        
         res = f(sample)
         run_info = {
             "id": str(uuid.uuid4()),
@@ -71,7 +75,7 @@ def llmbo(
     iteration = len(data["data"]) - 1
     if problem_data['human_behaviour'] == 'llmbo' and problem_data['llm_location'] != 'remote':
 
-        llm = Llama(model_path=problem_data['llm_location'],n_ctx=4096,n_gpu_layers=-1)
+        llm = Llama(model_path=problem_data['llm_location'],n_ctx=4096,n_gpu_layers=-1,n_threads = 2)
     while len(data['data']) < problem_data['max_iterations']:
         
             

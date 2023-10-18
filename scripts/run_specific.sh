@@ -1,5 +1,5 @@
 function="specific_functions"
-A_TOTAL="256"
+A_TOTAL="512"
 
 log_path="${function}_logs"
 

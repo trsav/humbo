@@ -1,5 +1,5 @@
 function="real_functions"
-A_TOTAL="36"
+A_TOTAL="80"
 
 log_path="${function}_logs"
 

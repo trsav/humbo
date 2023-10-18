@@ -114,7 +114,7 @@ def save_json(data, path):
 
 
 def sample_bounds(bounds, n):
-    sample = lhs(jnp.array(bounds), n)
+    sample = numpy_lhs(jnp.array(bounds), n)
     return sample
 
 def random_sample(bounds,n):

@@ -45,7 +45,7 @@ def specific_functions(array_index,b_index):
         f_store.append(Rosenbrock(i))
         f_store.append(Powell(i))
 
-    repeats = 16
+    repeats = 32
     f_key = array_index // repeats
     repeat = array_index % repeats
 
@@ -119,25 +119,27 @@ def real_functions(array_index,b_index):
         pass
 
     def create_P3HT():
-        f = P3HT(8)
+        f = P3HT(4)
         return  
     def create_AgNP():
-        f = AgNP(8)
+        f = AgNP(4)
         return f
     def create_Perovskite():
-        f = Perovskite(8)
+        f = Perovskite(4)
         return f
     def create_AutoAM():
-        f = AutoAM(1)
+        f = AutoAM(4)
         return f
     def create_CrossedBarrel():
         f = CrossedBarrel(1)
         return f
     f_list = [create_P3HT,create_AgNP,create_Perovskite,create_AutoAM,create_CrossedBarrel]
 
-    repeats = 8 
+    repeats = 16
     f_key = array_index // repeats
     repeat = array_index % repeats
+
+    print(repeats,f_key)
 
     human_behaviours = ['llmbo',0.33,'expert','trusting']
 
@@ -146,7 +148,7 @@ def real_functions(array_index,b_index):
     problem_data["sample_initial"] = 8
     problem_data["gp_ms"] = 8
     problem_data["alternatives"] = 3
-    problem_data["NSGA_iters"] = 750
+    problem_data["NSGA_iters"] = 1000
     problem_data['max_iterations'] = 50
     problem_data['acquisition_function'] = aq
     problem_data['time_created'] = str(datetime.datetime.now())
@@ -161,8 +163,8 @@ def real_functions(array_index,b_index):
     problem_data['function'] = f.name
     problem_data['dim'] = f.dim
     #problem_data['llm_location'] = 'remote'
-    problem_data['llm_location'] = "llama.cpp/models/13B/ggml-model-q8_0.gguf"
-    #problem_data['llm_location'] = "llama.cpp/models/zephyr-7b-alpha.Q4_K_M.gguf"
+    # problem_data['llm_location'] = "llama.cpp/models/13B/ggml-model-q8_0.gguf"
+    problem_data['llm_location'] = "llama.cpp/models/zephyr-7b-alpha.Q4_K_M.gguf"
 
     problem_data['human_behaviour'] = human_behaviours[b_index]
     problem_data['include_previous_justification'] = False
@@ -176,16 +178,16 @@ def real_functions(array_index,b_index):
         problem_data
     )
 
-    problem_data['include_previous_justification'] = True
-    file = f.name + '_' + str(uuid.uuid4())
-    path = res_path + file + "/"
-    problem_data['file_name'] = path
+    # problem_data['include_previous_justification'] = True
+    # file = f.name + '_' + str(uuid.uuid4())
+    # path = res_path + file + "/"
+    # problem_data['file_name'] = path
         
-    llmbo(
-        f,
-        aqs[aq],
-        problem_data
-    )
+    # llmbo(
+    #     f,
+    #     aqs[aq],
+    #     problem_data
+    # )
 
 #real_functions()
 
