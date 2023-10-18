@@ -133,7 +133,7 @@ def real_functions(array_index,b_index):
     def create_CrossedBarrel():
         f = CrossedBarrel(1)
         return f
-    f_list = [create_P3HT,create_AgNP,create_Perovskite,create_AutoAM,create_CrossedBarrel]
+    f_list = [create_AgNP,create_P3HT,create_Perovskite,create_AutoAM,create_CrossedBarrel]
 
     repeats = 16
     f_key = array_index // repeats

@@ -80,8 +80,9 @@ def create_prompt(f,x_names,x,u,data,subject,objective_description,prev_justific
 
 def run_prompt(llm,prompt):
     if llm.__class__ != str: 
-        res = llm(prompt, max_tokens=512,temperature = 0.1,stop=['}'],echo=False)
-        res = ['choices'][0]['text']
+        llm.reset()
+        res = llm(prompt, max_tokens=1028,temperature = 0.1,stop=['}'],echo=False)
+        res = res['choices'][0]['text']
         res = post_process_local(res)
 
     else:
