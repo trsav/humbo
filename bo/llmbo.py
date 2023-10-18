@@ -75,7 +75,7 @@ def llmbo(
     iteration = len(data["data"]) - 1
     if problem_data['human_behaviour'] == 'llmbo' and problem_data['llm_location'] != 'remote':
 
-        llm = Llama(model_path=problem_data['llm_location'],n_ctx=4096,n_gpu_layers=-1,n_threads = 2)
+        llm = Llama(model_path=problem_data['llm_location'],n_ctx=4096,n_gpu_layers=-1)
     while len(data['data']) < problem_data['max_iterations']:
         
             
