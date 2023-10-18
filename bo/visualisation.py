@@ -13,9 +13,10 @@ from pymoo.operators.mutation.pm import PM
 from pymoo.operators.sampling.rnd import FloatRandomSampling
 from pymoo.termination import get_termination
 import uuid
-from pymoo.optimize import minimize
-from scipy.optimize import minimize as scipy_minimize
+from pymoo.optimize import minimize as minimize_mo
+# from scipy.optimize import minimize as scipy_minimize
 import sys
+sys.path.insert(1, os.path.join(sys.path[0], ".."))
 from function_creation.create_problem import * 
 from function_creation.function import *
 
@@ -31,7 +32,10 @@ def bo(
     problem_data,
 ):
     path = problem_data["file_name"]
-    os.mkdir(path)
+    try:
+        os.mkdir(path)
+    except FileExistsError:
+        pass
     data_path = path + "/res.json"
 
     sample_initial = problem_data["sample_initial"]
@@ -70,7 +74,10 @@ def bo(
     while len(data['data']) < problem_data['max_iterations']:
         
         if problem_data['plotting'] == True:
-            os.mkdir(path + "/" + str(iteration + 1))
+            try:
+                os.mkdir(path + "/" + str(iteration + 1))
+            except FileExistsError:
+                pass
             
         start_time = time.time()
         data = read_json(data_path)
@@ -171,7 +178,7 @@ def bo(
                     K_list = []
                     for i in range(len(x_sols[0])):
                         set = jnp.array([x_sols[j][i] for j in range(alternatives)])
-                        K = gp["posterior"].prior.kernel.gram(set).A
+                        K = gp["posterior"].prior.kernel.gram(set).matrix
                         K = jnp.linalg.det(K)
                         K_list.append(K)
                     K_list = np.array(K_list)
@@ -179,7 +186,7 @@ def bo(
                     out["F"] = [aq_list, -K_list]
 
             problem = MO_aq()
-            res = minimize(
+            res = minimize_mo(
                 problem, algorithm, termination, seed=1, save_history=True, verbose=True
             )
 
@@ -319,7 +326,7 @@ def bo(
                 y_true[max_f],
                 c="k",
                 s=40,
-                marker="+",
+                marker="*",
                 label="Global Optimum",
             )
             ax.scatter(inputs, outputs, c="k", s=20, lw=0, label="Data")
@@ -374,7 +381,8 @@ def bo(
                     ax.scatter(
                         x_best_d[i],
                         -f_aq(x_best_d[i], util_args),
-                        c="#D81B60",
+                        c="k",
+                        marker="+",
                         s=40,
                         label="Best Variability Set" if i == 0 else None,
                     )
@@ -383,6 +391,7 @@ def bo(
                         -f_aq(x_best_utopia[i], util_args),
                         c="k",
                         s=40,
+                        marker='^',
                         label="Knee Set" if i == 0 else None,
                     )
                     ax.text(
@@ -398,7 +407,7 @@ def bo(
             ax.scatter(
                 x_opt_aq,
                 -f_aq(x_opt_aq, util_args),
-                c="#FFC107",
+                c="k",
                 s=40,
                 label='Optimum'
             )
@@ -507,19 +516,21 @@ problem_data = {}
 problem_data["sample_initial"] = 4
 problem_data["gp_ms"] = 16
 problem_data["alternatives"] = 4
-problem_data["NSGA_iters"] = 1000
+problem_data["NSGA_iters"] = 200
 problem_data['deterministic_initial'] = 'true'
 problem_data['max_iterations'] = 60
+problem_data['plotting'] = True
 problem_data['acquisition_function'] = 'UCB'
 problem_data['time_created'] = str(datetime.datetime.now())
 
 problem_data['dim'] = 1
 problem_data['human_behaviour'] = 'expert'
 
-f = Function(create_problem(0,0.04,problem_data['dim']))
+k = jax.random.PRNGKey(10)
+f = Function(create_problem(k,0.04,problem_data['dim']))
 
-file = "plots/"
-problem_data['file_name'] = '1D_vis'
+file = "1D_vis"
+problem_data['file_name'] = "bo/plots/" + file
 problem_data['function'] = file
 
 aqs = {'UCB':UCB,'EI':EI}

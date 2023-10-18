@@ -17,4 +17,5 @@ dependencies:
     - optax==0.1.7
     - jaxopt==0.8.1
     - llama-cpp-python
+    - latex
     
