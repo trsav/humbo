@@ -132,12 +132,16 @@ def real_functions(array_index,b_index):
         f = CrossedBarrel(1)
         return f
     
-    f_list = [create_SelfOpt,create_AgNP,create_Perovskite,create_CrossedBarrel]
+    def create_Reactor():
+        f = Reactor(1)
+        return f
+    
+    f_list = [create_Reactor,create_SelfOpt,create_AgNP,create_Perovskite,create_CrossedBarrel]
 
     repeats = 16
     f_key = array_index // repeats
     repeat = array_index % repeats
-
+    f_key = 0 
     print(repeats,f_key)
 
     human_behaviours = ['llmbo',0.25,'expert','trusting']
