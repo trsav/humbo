@@ -146,7 +146,7 @@ class Static_PDE_reaction_system:
         return solver
     
     def objective_noise_less(self, u, initial_sol=np.array([0.])):
-        u_new = u*(self.umax-self.umin) + self.umin
+        u_new = u
         if initial_sol.all()==np.array([0.]):
             inintial = np.array([*np.zeros([self.N * 5])+0.1,*np.array([u_new[0]] * self.N)])
         else:

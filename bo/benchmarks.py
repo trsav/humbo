@@ -153,7 +153,6 @@ def real_functions(array_index,b_index):
     problem_data['time_created'] = str(datetime.datetime.now())
     
     problem_data['human_behaviour'] = human_behaviours[b_index]
-    f_key = 0
     f = f_list[f_key]()
     problem_data['repeat'] = repeat
     problem_data['x_names'] = f.x_names
