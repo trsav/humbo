@@ -95,26 +95,6 @@ class AgNP(GeneralObjective):
         obj_type = "min")
 
 
-class AutoAM(GeneralObjective):
-    def __init__(self,gp_restarts):
-        super().__init__(gp_restarts,name = "AutoAM",
-        expertise = "Materials exploration and development for three-dimensional (3D) printing technologies.",
-        objective_description = '''
-        Here, we focused solely on four fundamental syringe extrusion parameters that influence easily distinguished geometric aspects of the leading segment of a printed line. 
-        These parameters are ‘prime delay,’ ‘print speed,’ ‘x-position,’ and ‘y-position’
-        In each experiment, AM ARES printed a 12 mm line and captured an image of the leading segment. 
-        An image analysis module returned a single ‘objective score’ based on the two-dimensional size, shape, and location of the printed feature. 
-        Here, the target shape for the leading segment of printed lines was defined as a combined rectangle and semi-circle. 
-        To elucidate the effectiveness of the optimization process, we intentionally set the conditions so as to be relatively challenging: 
-        We selected a 0.42 mm dispensing tip, and the target shape for the leading segment was almost three times wider at w = 1.2 mm.
-        We formulated an objective-scoring algorithm that returned the quotient of the effective specimen area divided by the desired region’s area.
-        The effective area is defined as the area of the specimen internal to the desired region less the area of the specimen external to the desired region.
-        Negative values for effective area are set to zero. 
-        An ideal print, wherein the outline is completely filled without any specimen external to the outline, would achieve a maximal objective score of 1.0.
-        The objective is to maximise this score.
-        ''',
-        obj_type = "max")
-
 class CrossedBarrel(GeneralObjective):
     def __init__(self,gp_restarts):
         super().__init__(gp_restarts,name = "Crossed barrel",
@@ -133,46 +113,3 @@ class CrossedBarrel(GeneralObjective):
         The objective is to maximise the toughness of a design, there will be a trade off between weight and strength.
         ''',
         obj_type = "max")
-
-
-class P3HT(GeneralObjective):
-    def __init__(self, gp_restarts):
-        super().__init__(gp_restarts,name = "P3HT",
-        expertise = "The Electrical Conductivity of P3HT-CNT Composites",
-        objective_description = '''
-        In this study, we mix rr-P3HT with four types of Carbon Nanotube Composites (CNTs), where the interactions between the P3HT chains and CNTs are expected to create different morphologies and crystalline structures that control the electrical conductivity of the composite film
-        It has already been reported that doping increases the electrical conductivity of all P3HT/CNT composites irrespective of the type of CNTs.
-        The workflow begins with data generation from the high-throughput experimental platform, where P3HT/CNT composite films are prepared in a microfluidic reactor linked to an automated drop-casting system, then transitions to rapid optical, and electrical diagnostics.
-        In this study, we mix rr-P3HT with four types of CNTs, where the interactions between the P3HT chains and CNTs are expected to create different morphologies and crystalline structures that control the electrical conductivity of the composite film. 
-        The types of CNTs used in this study are: 1) long single wall CNTs of lengths in the range of 5–30 µm (l-SWNTs), 2) short single wall CNTs of lengths in the range of 1–3µm, (s-SWNTs), 3) multi walled CNTs (MWCNTs), and 4) double-walled CNTs (DWCNTs). 
-        The choice of the nanotubes was aimed to cover a broad range of properties.
-
-        The objective is to maximise the electrical conductivity of the composite inorganic-organic hybrid material film. 
-        ''',
-        obj_type = "max")
-
-
-class RosenbrockLLM:
-    def __init__(self, d):
-        self.name = "Rosenbrock" + str(d)
-        self.expertise = "Problems used to benchmark optimisation problems"
-        self.objective_description = "The goal is to maximise the "+str(d)+"D negative Rosenbrock function."
-        self.x_names = ['x_'+str(i+1) for i in range(d)]
-        self.y_name = 'arbitary benchmark objective'
-        self.bounds = list(jnp.array([[-5, 10]] * d))
-        self.f_opt = 0
-        self.dim = d
-
-    def __call__(self, x):
-        d = len(x)
-        x = jnp.array(x)
-        f = jnp.sum(100 * (x[1:] - x[:-1] ** 2) ** 2 + (x[:-1] - 1) ** 2)
-        return -f.item() / 100000
-
-
-
-# f = AgNP()
-# f = Perovskite()
-# f = AutoAM(1)
-# f = CrossedBarrel()
-# f = P3HT(gp_restarts = 1)

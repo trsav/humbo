@@ -19,3 +19,4 @@ todo
 !llmbo_dalle.png
 **/*_logs
 Dockerfile
+**/*.DS_Store

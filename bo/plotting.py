@@ -190,7 +190,7 @@ def plot_rkhs(aq,d,max_it,b_w=False):
         os.mkdir('bo/plots')
 
 
-def plot_human_specific(max_it,b_w):
+def plot_specific(max_it,b_w):
     directory = 'bo/benchmark_results_specific'
     colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
     human_behaviours = ['expert','adversarial','trusting',0.75,0.5,0.25]
@@ -238,6 +238,45 @@ def plot_human_specific(max_it,b_w):
         plt.savefig('bo/plots/overall_regret_'+function+'.pdf')
 
 
+def plot_real(max_it,b_w):
+    directory = 'bo/benchmark_results_real'
+    colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
+    human_behaviours = ['expert','adversarial','trusting',0.33,'llmbo']
+
+    functions = ['AgNP','Crossed barrel','Perovskite']
+
+    for function in functions:
+        fig,axs = plt.subplots(1,2,figsize=(9,2.5))
+        
+        for i in range(len(human_behaviours)):
+            # for this problem data
+            problem_data = {}
+            problem_data['human_behaviour'] = human_behaviours[i]
+            problem_data['acquisition_function'] = 'UCB'
+            problem_data['function'] = function
+            if b_w == False:
+                colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
+                try:
+                    s_i = plot_regret(problem_data,axs,colors[i],directory,max_it,b_w,unc=False)
+                except:
+                    pass
+            if b_w == True:
+                lines = ['-','--','-.',':',(0,1,10),(0, (3, 5, 1, 5, 1, 5))]
+                try:
+                    s_i = plot_regret(problem_data,axs,lines[i],directory,max_it,b_w,unc=False)
+                except:
+                    pass
+
+        fs = 12
+
+        func_str = function
+
+        axs[1].text(0.95, 0.95,func_str , horizontalalignment='right',verticalalignment='top', transform=axs[1].transAxes,fontsize=12,bbox=dict(facecolor='white',edgecolor='none',pad=0.5))
+        fig,axs = format_plot(fig,axs,s_i)
+        plt.savefig('bo/plots/overall_regret_'+function+'.pdf')
+
+
+
 
 
 # plot_human('EI',1)
@@ -245,4 +284,5 @@ b_w = True
 # plot_rkhs('UCB',1,25,b_w)
 # plot_rkhs('UCB',2,60,b_w)
 # plot_rkhs('UCB',5,60,b_w)
-plot_human_specific(60,b_w)
+# plot_specific(60,b_w)
+plot_real(50,False)

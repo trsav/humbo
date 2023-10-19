@@ -1,5 +1,5 @@
 function="real_functions"
-A_TOTAL="80"
+A_TOTAL="63"
 
 log_path="${function}_logs"
 
@@ -10,5 +10,5 @@ fi
 for B in {0..4}; do
     UUID="job_$(uuidgen | cut -c 1-8)"
     log_name="${log_path}/logs_${UUID}.out"
-    qsub -o ${log_name} -e ${log_name} -N ${UUID} -J 1-${A_TOTAL} -v B=$B,function=$function scripts/array_job.sh
+    qsub -o ${log_name} -e ${log_name} -N ${UUID} -J 0-${A_TOTAL} -v B=$B,function=$function scripts/array_job.sh
 done

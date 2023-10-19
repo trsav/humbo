@@ -18,4 +18,5 @@ dependencies:
     - jaxopt==0.8.1
     - llama-cpp-python
     - latex
+    - casadi 
     

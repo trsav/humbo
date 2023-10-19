@@ -12,6 +12,7 @@ from utils import *
 import uuid
 from function_creation.create_problem import create_problem
 from function_creation.materials_functions import *
+from function_creation.ce_functions import *
 import multiprocessing as mp
 import gc 
 import resource
@@ -117,23 +118,21 @@ def real_functions(array_index,b_index):
         os.mkdir(res_path)
     except FileExistsError:
         pass
-
-    def create_P3HT():
-        f = P3HT(4)
-        return  
+    
+    def create_SelfOpt():
+        f = SelfOpt(4)
+        return f
     def create_AgNP():
         f = AgNP(4)
         return f
     def create_Perovskite():
         f = Perovskite(4)
         return f
-    def create_AutoAM():
-        f = AutoAM(4)
-        return f
     def create_CrossedBarrel():
         f = CrossedBarrel(1)
         return f
-    f_list = [create_P3HT,create_AgNP,create_Perovskite,create_AutoAM,create_CrossedBarrel]
+    
+    f_list = [create_SelfOpt,create_AgNP,create_Perovskite,create_CrossedBarrel]
 
     repeats = 16
     f_key = array_index // repeats
@@ -141,20 +140,20 @@ def real_functions(array_index,b_index):
 
     print(repeats,f_key)
 
-    human_behaviours = ['llmbo',0.33,'expert','trusting']
+    human_behaviours = ['llmbo',0.25,'expert','trusting']
 
     aq = 'UCB'
     problem_data = {}
     problem_data["sample_initial"] = 8
     problem_data["gp_ms"] = 8
-    problem_data["alternatives"] = 3
+    problem_data["alternatives"] = 4
     problem_data["NSGA_iters"] = 1000
     problem_data['max_iterations'] = 50
     problem_data['acquisition_function'] = aq
     problem_data['time_created'] = str(datetime.datetime.now())
     
     problem_data['human_behaviour'] = human_behaviours[b_index]
-    #f_key = 3
+    f_key = 0
     f = f_list[f_key]()
     problem_data['repeat'] = repeat
     problem_data['x_names'] = f.x_names
