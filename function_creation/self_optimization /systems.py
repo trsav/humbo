@@ -154,5 +154,5 @@ class Static_PDE_reaction_system:
 
         x = self.eval(inintial, u_new)
 
-        obj = -log(x[self.N*2-1])
+        obj = x[self.N*2-1]
         return obj.toarray()[0,0]

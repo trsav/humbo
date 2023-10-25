@@ -69,8 +69,30 @@ class SelfOpt(GeneralObjective):
         \( T_w \) controls the kinetics of the reaction, influencing both the rate and the equilibrium conversion. 
         \( Da \) is a dimensionless number that balances reaction and diffusion rates, effectively affecting how uniformly the reaction proceeds throughout the reactor.
 
-        The objective function \( -\log(x_{\text{para}, \text{end}}) \) aims to maximize the final product concentration by minimizing the negative logarithm of final product concentration. 
-
-        The objective is the value of this negative-log function, which must be minimized.
+        The objective function aims to maximize the final product concentration.
         ''',
-        obj_type = "min")
+        obj_type = "max")
+
+
+class Reactor(GeneralObjective):
+    def __init__(self, gp_restarts):
+        super().__init__(
+            gp_restarts,
+            name= "reactor",
+        expertise = "Pulsed-flow helical tube reactor design and fluid dynamics.",
+        objective_description = '''
+    A helical-tube reactor is parameterized by a coil radius, coil pitch, and inversion. 
+    Coil pitch denoted by controls how extended the helical tube is, coil radius denoted by controls how tight the coils are within the helical tube, 
+    and the inversion parameter is denoted by  controls the change in coil direction and specifies where along the coil the inversion takes place. 
+    The length of the coil is maintained as fixed, resulting in all parameterized coils having the same volume. 
+    Within the parameterization, we include a fixed-length inlet and outlet to the coil. 
+    The inlet and outlet are horizontal, and a smooth interpolation is used to ensure that the transition from inlet to coil and coil to outlet, is smooth. 
+
+    The reactor inlet flow is at a Reynolds number of 50 for which relatively insignificant mixing is expected to take place. 
+    A superimposition of oscillatory velocity is, therefore, needed to operate under a wide range of plug flow conditions. 
+    This oscillatory velocity is achieved through parameters representing oscillation amplitude and frequency which will effect the vortices and fluid behaviour. 
+
+    The objective function is to maximise the equivalent number of tanks-in-series for a given reactor. A higher value represents 
+    a closer approximation to plug-flow behaviour, and better mixing. 
+        ''',
+        obj_type = "max")

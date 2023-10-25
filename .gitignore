@@ -20,3 +20,4 @@ todo
 **/*_logs
 Dockerfile
 **/*.DS_Store
+function_creation/parse_reactor_data.py

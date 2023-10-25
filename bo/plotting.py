@@ -102,6 +102,8 @@ def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc):
     else:
         label = '$p($Best$)=$'+str(label) 
 
+    if label == 'Llmbo':
+        label = 'LLMBO'
     try:
         x = np.arange(init,len(average_regret))
         if b_w != True:
@@ -243,7 +245,7 @@ def plot_real(max_it,b_w):
     colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
     human_behaviours = ['expert','adversarial','trusting',0.33,'llmbo']
 
-    functions = ['AgNP','Crossed barrel','Perovskite']
+    functions = ['selfopt','AgNP','Crossed barrel','Perovskite']
 
     for function in functions:
         fig,axs = plt.subplots(1,2,figsize=(9,2.5))

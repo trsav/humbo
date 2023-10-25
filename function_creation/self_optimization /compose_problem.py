@@ -37,7 +37,7 @@ for i in tqdm(range(n)):
         df_pd.to_csv('function_creation/datasets/selfopt_dataset.csv',index=False)
 
 plt.figure
-plt.contourf(X1,X2,Z,levels=100)
-plt.show()
+plt.contourf(X1,X2,Z,levels=200)
+plt.savefig('function_creation/datasets/selfopt_dataset.png',dpi=300)
 
 
