@@ -146,7 +146,7 @@ def real_functions(array_index,b_index):
     problem_data = {}
     problem_data["sample_initial"] = 8
     problem_data["gp_ms"] = 8
-    problem_data["alternatives"] = 4
+    problem_data["alternatives"] = 3
     problem_data["NSGA_iters"] = 1000
     problem_data['max_iterations'] = 50
     problem_data['acquisition_function'] = aq
