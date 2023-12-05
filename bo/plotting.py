@@ -23,10 +23,14 @@ from tensorflow_probability.substrates import jax as tfp
 import shutil 
 from matplotlib import rc
 from utils import * 
+import matplotlib.font_manager
+import matplotlib as mpl
 
-# plt.rcParams.update({ "text.usetex": True,
-#     "font.family": "Helvetica"
-# })
+from pathlib import Path
+
+fpath = Path(mpl.get_data_path(), "bo/plots/BerkeleyMono.ttf")
+plt.rcParams["font.family"] = "monospace"
+plt.rcParams["font.monospace"] = ["Berkeley Mono"]
 
 def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc): 
 
@@ -134,16 +138,17 @@ def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc):
 
 def format_plot(fig,axs,s_i):
     fs = 12
-    axs[0].set_ylabel(r"Simple Regret, $r_\tau$",fontsize=fs)
+    axs[0].set_ylabel(r"Simple Regret, $r_\tau$",fontsize=fs,font=fpath)
     for ax in axs:
         ax.grid(True,alpha=0.5)
         x_start = s_i
         max_y = ax.get_ylim()[1]
         min_y = ax.get_ylim()[0]
         ax.plot([x_start,x_start],[min_y,max_y],c='k',ls='--',lw=1,alpha=0.5)
-    axs[0].set_xlabel(r"Iterations, $\tau$",fontsize=fs)
-    axs[1].set_xlabel(r"Iterations, $\tau$",fontsize=fs)
-    axs[1].set_ylabel(r"Average Regret, ${R_\tau}/{\tau}$",fontsize=fs)
+    
+    axs[0].set_xlabel(r"Iterations, $\tau$",fontsize=fs,font=fpath)
+    axs[1].set_xlabel(r"Iterations, $\tau$",fontsize=fs,font=fpath)
+    axs[1].set_ylabel(r"Average Regret, ${R_\tau}/{\tau}$",fontsize=fs,font=fpath)
     axs[0].set_yscale('log')
     # add text in upper right of right plot with functon name
 
@@ -237,7 +242,7 @@ def plot_specific(max_it,b_w):
         axs[1].text(0.95, 0.95, func_name + ': $d= $'+n, horizontalalignment='right',verticalalignment='top', transform=axs[1].transAxes,fontsize=12,bbox=dict(facecolor='white',edgecolor='none',pad=0.5))
 
         fig,axs = format_plot(fig,axs,s_i)
-        plt.savefig('bo/plots/overall_regret_'+function+'.pdf')
+        plt.savefig('bo/plots/overall_regret_'+function+'.png',dpi=400)
 
 
 def plot_real(max_it,b_w):
@@ -259,13 +264,13 @@ def plot_real(max_it,b_w):
             if b_w == False:
                 colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
                 try:
-                    s_i = plot_regret(problem_data,axs,colors[i],directory,max_it,b_w,unc=False)
+                    s_i = plot_regret(problem_data,axs,colors[i],directory,max_it,b_w,unc=True)
                 except:
                     pass
             if b_w == True:
                 lines = ['-','--','-.',':',(0,1,10),(0, (3, 5, 1, 5, 1, 5))]
                 try:
-                    s_i = plot_regret(problem_data,axs,lines[i],directory,max_it,b_w,unc=False)
+                    s_i = plot_regret(problem_data,axs,lines[i],directory,max_it,b_w,unc=True)
                 except:
                     pass
 
@@ -282,9 +287,9 @@ def plot_real(max_it,b_w):
 
 
 # plot_human('EI',1)
-b_w = True
+b_w = False
 # plot_rkhs('UCB',1,25,b_w)
-# plot_rkhs('UCB',2,60,b_w)
+plot_rkhs('UCB',2,60,b_w)
 # plot_rkhs('UCB',5,60,b_w)
-# plot_specific(60,b_w)
-plot_real(50,False)
+plot_specific(60,b_w)
+#plot_real(50,False)

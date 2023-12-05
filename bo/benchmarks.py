@@ -144,7 +144,8 @@ def real_functions(array_index,b_index):
     f_key = 0 
     print(repeats,f_key)
 
-    human_behaviours = ['llmbo',0.25,'expert','trusting']
+    # human_behaviours = ['llmbo',0.25,'expert','trusting']
+    human_behaviours = ['expert','trusting']
 
     aq = 'UCB'
     problem_data = {}

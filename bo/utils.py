@@ -23,9 +23,9 @@ from tensorflow_probability.substrates import jax as tfp
 import shutil 
 from matplotlib import rc
 import matplotlib as mpl
-# plt.rcParams.update({ "text.usetex": True,
-#     "font.family": "Helvetica"
-# })
+plt.rcParams.update({ "text.usetex": True,
+    "font.family": "Berkeley Mono"
+})
 
 tfd = tfp.distributions
 
