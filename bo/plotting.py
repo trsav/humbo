@@ -28,9 +28,13 @@ import matplotlib as mpl
 
 from pathlib import Path
 
-fpath = Path(mpl.get_data_path(), "bo/plots/BerkeleyMono.ttf")
-plt.rcParams["font.family"] = "monospace"
-plt.rcParams["font.monospace"] = ["Berkeley Mono"]
+# fpath = Path(mpl.get_data_path(), "bo/plots/BerkeleyMono.ttf")
+# plt.rcParams["font.family"] = "monospace"
+# plt.rcParams["font.monospace"] = ["Berkeley Mono"]
+
+rc('font',**{'family':'sans-serif','sans-serif':['Arial']})
+rc('text', usetex=True)
+fpath = 'Arial'
 
 def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc): 
 
@@ -121,13 +125,20 @@ def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc):
         regret_list = np.array(regret_list)
         mean_instantaneous_regret = np.mean(regret_list,axis=0)
         std_instantaneous_regret = np.std(regret_list,axis=0)
+
+        # for k in range(len(regret_list)):
+        #     # clip std so that mean-std is never less than 10-4
+        #     if mean_instantaneous_regret[k] - std_instantaneous_regret[k] < 10e-4:
+        #         std_instantaneous_regret[k] = 0 
+
+
         x = np.arange(init,len(mean_instantaneous_regret))
         if b_w != True:
             ax.plot(x,mean_instantaneous_regret[init:],c=c,lw=1.5,label=label)
         else:
             ax.plot(x,mean_instantaneous_regret[init:],c='k',lw=1.5,ls=c,label=label)
         lower = mean_instantaneous_regret[init:]-std_instantaneous_regret[init:]
-        lower[lower<0] = 0
+        lower[lower<10e-4] = 10e-4
         upper = mean_instantaneous_regret[init:]+std_instantaneous_regret[init:]
         if b_w != True and unc == True:
             ax.fill_between(x,lower,upper,alpha=0.1,color=c,lw=0)
@@ -248,9 +259,9 @@ def plot_specific(max_it,b_w):
 def plot_real(max_it,b_w):
     directory = 'bo/benchmark_results_real'
     colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
-    human_behaviours = ['expert','adversarial','trusting',0.33,'llmbo']
+    human_behaviours = ['expert','trusting']
 
-    functions = ['selfopt','AgNP','Crossed barrel','Perovskite']
+    functions = ['selfopt','reactor','AgNP','Crossed barrel','Perovskite']
 
     for function in functions:
         fig,axs = plt.subplots(1,2,figsize=(9,2.5))
@@ -279,7 +290,10 @@ def plot_real(max_it,b_w):
         func_str = function
 
         axs[1].text(0.95, 0.95,func_str , horizontalalignment='right',verticalalignment='top', transform=axs[1].transAxes,fontsize=12,bbox=dict(facecolor='white',edgecolor='none',pad=0.5))
-        fig,axs = format_plot(fig,axs,s_i)
+        try:
+            fig,axs = format_plot(fig,axs,s_i)
+        except:
+            pass
         plt.savefig('bo/plots/overall_regret_'+function+'.pdf')
 
 
@@ -289,7 +303,8 @@ def plot_real(max_it,b_w):
 # plot_human('EI',1)
 b_w = False
 # plot_rkhs('UCB',1,25,b_w)
-plot_rkhs('UCB',2,60,b_w)
+# plot_rkhs('UCB',2,60,b_w)
 # plot_rkhs('UCB',5,60,b_w)
-plot_specific(60,b_w)
-#plot_real(50,False)
+# plot_rkhs('UCB',5,60,b_w)
+#plot_specific(60,b_w)
+plot_real(50,b_w)
