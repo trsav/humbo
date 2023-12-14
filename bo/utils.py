@@ -12,6 +12,7 @@ from jax.scipy.linalg import cho_factor, cho_solve
 import numpy as np
 import numpy.random as rnd
 import jax
+from jax import grad 
 import gpjax as gpx
 import optax as ox
 import json
@@ -759,14 +760,16 @@ def noisy_EI(x,args):
         sum += dom_b[i]*(N.cdf(c_i1) - N.cdf(c_i)) + dom_a[i]*((N.prob(c_i)) - N.prob(c_i1))
     return sum
 
-x_test = np.random.uniform(0,1,(10,1))
-y_test = np.random.uniform(0,1,(10,1))
-bounds = np.array([[0,1]])
-key = 0 
-f_best = 0 
-gp = build_gp_dict(*train_gp(x_test,y_test,1,its=4000,noise=True))
-print(noisy_EI(0.5,(gp,f_best,bounds,key)))
+# x_test = np.random.uniform(0,1,(10,1))
+# y_test = np.random.uniform(0,1,(10,1))
+# bounds = np.array([[0,1]])
+# key = 0 
+# f_best = 0 
+# gp = build_gp_dict(*train_gp(x_test,y_test,1,its=4000,noise=True))
+# print(noisy_EI(0.5,(gp,f_best,bounds,key)))
 
+# grad_aq = grad(noisy_EI,argnums=0)
+# print(grad_aq(0.5,(gp,f_best,bounds,key)))
 
 
 def plot_llmbo():

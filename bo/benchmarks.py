@@ -18,7 +18,7 @@ import gc
 import resource
 import argparse
 
-aqs = {'EI':EI,'UCB':UCB}
+aqs = {'EI':EI,'UCB':UCB,'NOISY_EI':noisy_EI}
 
 def specific_functions(array_index,b_index):
     res_path = 'bo/benchmark_results_specific/'
@@ -74,7 +74,7 @@ def rkhs_functions(array_index, b_index):
     except FileExistsError:
         pass
 
-    aq = 'UCB'
+    aq = 'NOISY_EI'
     human_behaviours = ['expert','adversarial','trusting',0.25,0.5,0.75]
     problem_data = {}
     problem_data["sample_initial"] = 4
