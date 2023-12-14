@@ -99,11 +99,11 @@ def llmbo(
 
         d = len(inputs[0])
         f_best = np.max(outputs)
-        gp = build_gp_dict(*train_gp(inputs, outputs, gp_ms))
+        gp = build_gp_dict(*train_gp(inputs, outputs, gp_ms,noise=problem_data['noisy']))
         util_args = (gp, f_best)
         if problem_data['acquisition_function'] == 'NOISY_EQ':
             util_args = (gp, f_best, np.array(bounds),0)
-        
+
 
         aq = vmap(f_aq, in_axes=(0, None))
 
