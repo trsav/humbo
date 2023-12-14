@@ -189,7 +189,7 @@ def plot_function(f,path):
     plt.savefig(path)
     return
 
-def train_gp(inputs, outputs, ms):
+def train_gp(inputs, outputs, ms,its=2000,noise=False):
     # creating a set of initial GP hyper parameters (log-spaced)
     p_num = len(inputs[0, :])
 
@@ -212,7 +212,10 @@ def train_gp(inputs, outputs, ms):
         kernel = gpx.kernels.Matern52(lengthscale=p)
         meanf = gpx.mean_functions.Constant()
         prior = gpx.Prior(mean_function=meanf, kernel=kernel)
-        likelihood = gpx.Gaussian(num_datapoints=D.n, obs_noise=0.0)
+        if noise == False:
+            likelihood = gpx.Gaussian(num_datapoints=D.n, obs_noise=0.0)
+        else:
+            likelihood = gpx.Gaussian(num_datapoints=D.n)
         # Bayes rule
         posterior = prior * likelihood
         # negative log likelihood
@@ -224,7 +227,7 @@ def train_gp(inputs, outputs, ms):
             objective=negative_mll,
             train_data=D,
             optim=ox.adam(learning_rate=0.02),
-            num_iters=2000,
+            num_iters=its,
             safe=True,
             key=key,
         )
@@ -248,6 +251,16 @@ def inference(gp, x_inputs):
     predictive_std = predictive_dist.stddev().astype(float)
     return predictive_mean, predictive_std
 
+def inference_full_cov(gp, x_inputs):
+    posterior = gp["posterior"]
+    D = gp["D"]
+
+    latent_dist = posterior.predict(x_inputs, train_data=D)
+    predictive_dist = posterior.likelihood(latent_dist)
+
+    predictive_mean = predictive_dist.mean().astype(float)
+    predictive_cov = predictive_dist.covariance().astype(float)
+    return predictive_mean, predictive_cov
 
 def build_gp_dict(posterior, D):
     # build a dictionary to store features to make everything cleaner
@@ -654,6 +667,106 @@ def plot_regret_llmbo(problem_data,axs,c,directory,function):
     except:
         return 
     return 
+
+
+def upper_env(a,b):
+
+    zl = -3; zu = 3
+    l_store = a*zl + b
+    u_store = a*zu + b
+
+    L_i = jnp.argmax(l_store)
+    U_i = jnp.argmax(u_store)
+
+    del_i = []
+    for i in range(len(a)):
+        if l_store[i] < l_store[U_i] and u_store[i] < u_store[L_i]:
+            del_i.append(int(i))
+
+    del_i = jnp.array(del_i)
+    a = jnp.delete(a,del_i)
+    b = jnp.delete(b,del_i)
+
+    n = len(a)
+
+    sorted_indices = jnp.argsort(a)
+    a = a[sorted_indices]
+    b = b[sorted_indices]
+
+    dom_a = jnp.copy(a)
+    dom_b = jnp.copy(b)
+    interval_store = jnp.zeros((n,2))
+    envelope_z = -3
+
+    for j in range(n):
+
+        z_intercept_store = jnp.zeros(n-j-1)
+        for i in range(j+1,n):
+            z_intercept_store = z_intercept_store.at[i-j-1].set((dom_b[j] - b[i])/(a[i] - dom_a[j]))
+
+        try:
+            z_intercept = jnp.min(z_intercept_store)
+        except:
+            interval_store = interval_store.at[j,0].set(envelope_z)
+            interval_store = interval_store.at[j,1].set(zu)
+            break 
+
+        mu_intercept = dom_a[j]*z_intercept + dom_b[j]
+
+        mu_vals = jnp.zeros(n-j-1)
+        for i in range(j+1,n):
+            mu_vals = mu_vals.at[i-j-1].set(a[i]*z_intercept + b[i])
+
+        if abs(mu_intercept-np.max(mu_vals)) < 1e-9 and z_intercept > envelope_z:
+            interval_store = interval_store.at[j,0].set(envelope_z)
+            interval_store = interval_store.at[j,1].set(z_intercept)
+            envelope_z = z_intercept
+        else:
+            dom_a = dom_a.at[j].set(None)
+            dom_b = dom_b.at[j].set(None)
+            interval_store = interval_store.at[j,0].set(None)
+            interval_store = interval_store.at[j,1].set(None)
+
+    del_store = []
+    for i in range(len(dom_a)):
+        if dom_a[i] != dom_a[i]:
+            del_store.append(i)
+    del_store = jnp.array(del_store)
+    dom_a = jnp.delete(dom_a,del_store)
+    dom_b = jnp.delete(dom_b,del_store)
+    interval_store = jnp.delete(interval_store,del_store,axis=0)
+
+    interval_store = jnp.clip(interval_store,zl,zu)
+
+    return dom_a,dom_b,interval_store
+
+
+
+def noisy_EI(x,args):
+    gp,f_best,bounds,key = args
+    m, s = inference(gp, jnp.array([x]))
+    x_s = lhs(bounds,100,key=key)
+    x_eval = jnp.concatenate((jnp.array([[x]]),x_s),axis=0)
+    m_s, cov_s = inference_full_cov(gp, x_eval)
+    b = m_s[1:]
+    a = cov_s[0,1:] / s
+    dom_a,dom_b,interval_store = upper_env(a,b)
+    N = tfd.Normal(0,1)
+    sum = 0
+    for i in range(len(interval_store)):
+        c_i = interval_store[i,0]
+        c_i1 = interval_store[i,1]
+        sum += dom_b[i]*(N.cdf(c_i1) - N.cdf(c_i)) + dom_a[i]*((N.prob(c_i)) - N.prob(c_i1))
+    return sum
+
+x_test = np.random.uniform(0,1,(10,1))
+y_test = np.random.uniform(0,1,(10,1))
+bounds = np.array([[0,1]])
+key = 0 
+f_best = 0 
+gp = build_gp_dict(*train_gp(x_test,y_test,1,its=4000,noise=True))
+print(noisy_EI(0.5,(gp,f_best,bounds,key)))
+
 
 
 def plot_llmbo():

@@ -147,7 +147,7 @@ def real_functions(array_index,b_index):
     # human_behaviours = ['llmbo',0.25,'expert','trusting']
     human_behaviours = ['expert','trusting']
 
-    aq = 'UCB'
+    aq = 'EI'
     problem_data = {}
     problem_data["sample_initial"] = 8
     problem_data["gp_ms"] = 8

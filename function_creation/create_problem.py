@@ -6,7 +6,6 @@ import pickle
 from gpjax.kernels import Matern52
 import optax as ox
 import matplotlib.pyplot as plt
-from function import Function 
 
 
 def create_problem(key, l, d):
@@ -88,25 +87,26 @@ def create_problem(key, l, d):
 
 
 
-fig,axs = plt.subplots(2, 2, figsize=(6, 4.5),constrained_layout=True)
-d = 2 
-key = random.PRNGKey(0)
-for ax,k in zip(axs.ravel(),range(4)):
-    key,subkey = random.split(key)
-    f = Function(create_problem(key,0.04,d))
-    n = 40 
-    x1 = jnp.linspace(0,1,n)
-    x2 = jnp.linspace(0,1,n)
-    X1,X2 = jnp.meshgrid(x1,x2)
-    from tqdm import tqdm 
-    Y = jnp.zeros((n,n))
-    for i in tqdm(range(n)):
-        for j in range(n):
-            Y = Y.at[i,j].set(f(jnp.array([x1[i],x2[j]])))
-    ax.contourf(X1,X2,Y,cmap='Spectral',levels=16)
-    ax.set_xlabel('$x_1$')
-    ax.set_ylabel('$x_2$')
-    ax.spines['right'].set_visible(False)
-    ax.spines['top'].set_visible(False)
-plt.tight_layout()
-plt.savefig('function_creation/example_functions_2D.pdf')
+# from function import Function 
+# fig,axs = plt.subplots(2, 2, figsize=(6, 4.5),constrained_layout=True)
+# d = 2 
+# key = random.PRNGKey(0)
+# for ax,k in zip(axs.ravel(),range(4)):
+#     key,subkey = random.split(key)
+#     f = Function(create_problem(key,0.04,d))
+#     n = 40 
+#     x1 = jnp.linspace(0,1,n)
+#     x2 = jnp.linspace(0,1,n)
+#     X1,X2 = jnp.meshgrid(x1,x2)
+#     from tqdm import tqdm 
+#     Y = jnp.zeros((n,n))
+#     for i in tqdm(range(n)):
+#         for j in range(n):
+#             Y = Y.at[i,j].set(f(jnp.array([x1[i],x2[j]])))
+#     ax.contourf(X1,X2,Y,cmap='Spectral',levels=16)
+#     ax.set_xlabel('$x_1$')
+#     ax.set_ylabel('$x_2$')
+#     ax.spines['right'].set_visible(False)
+#     ax.spines['top'].set_visible(False)
+# plt.tight_layout()
+# plt.savefig('function_creation/example_functions_2D.pdf')
