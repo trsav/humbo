@@ -47,6 +47,7 @@ class Branin:
         self.name = "Branin"
         self.bounds = jnp.array([[-5, 10], [0, 15]])
         self.f_opt = -0.397887
+        self.f_max = 300 # approximately 
         self.dim = 2
 
     def __call__(self, x):
@@ -66,6 +67,7 @@ class Ackley:
         self.name = "Ackley" + str(d)
         self.bounds = jnp.array([[-32.768, 32.768]] * d)
         self.f_opt = 0
+        self.f_max = 22 # approximately
         self.dim = d
 
     def __call__(self, x):
@@ -88,6 +90,7 @@ class Griewank:
         self.name = "Griewank" + str(d)
         self.bounds = jnp.array([[-600, 600]] * d)
         self.f_opt = 0
+        self.f_max = 150 # approximately
         self.dim = d
 
     def __call__(self, x):
@@ -106,6 +109,7 @@ class Rastrigin:
         self.bounds = jnp.array([[-5.12, 5.12]] * d)
 
         self.f_opt = 0
+        self.f_max = 80 # approximately
         self.dim = d
 
     def __call__(self, x):
@@ -122,6 +126,7 @@ class Rosenbrock:
         self.name = "Rosenbrock" + str(d)
         self.bounds = jnp.array([[-5, 10]] * d)
         self.f_opt = 0
+        self.f_max = 15 # approximately
         self.dim = d
 
     def __call__(self, x):
@@ -130,21 +135,17 @@ class Rosenbrock:
         f = jnp.sum(100 * (x[1:] - x[:-1] ** 2) ** 2 + (x[:-1] - 1) ** 2)
         return -f.item()
 
-
-class Powell:
+    
+class StyblinskiTang:
     def __init__(self, d):
-        self.name = "Powell" + str(d)
-        self.bounds = jnp.array([[-4, 5]] * d)
+        self.name = "StyblinskiTang" + str(d)
+        self.bounds = jnp.array([[-5, 5]] * d)
         self.f_opt = 0
+        self.f_max = 250
         self.dim = d
 
     def __call__(self, x):
         d = len(x)
         x = jnp.array(x)
-        f = jnp.sum(
-            (x[0::4] - 10 * x[1::4]) ** 2
-            + 5 * (x[2::4] - x[3::4]) ** 2
-            + (x[1::4] - 2 * x[2::4]) ** 4
-            + 10 * (x[0::4] - x[3::4]) ** 4
-        )
+        f = 0.5 * jnp.sum(x**4 - 16 * x**2 + 5 * x)
         return -f.item()

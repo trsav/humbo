@@ -305,13 +305,51 @@ def global_optimum_distributions(x_bounds, gp, samples):
 @jit
 def EI(x, args):
     gp, f_best = args
-    m, K = inference(gp, jnp.array([x]))
-    sigma = jnp.sqrt(K)
+    m, sigma = inference(gp, jnp.array([x]))
     diff = m - f_best
-    p_y = tfd.Normal(loc=m, scale=sigma)
+    p_z = tfd.Normal(loc=0, scale=1)
     Z = diff / sigma
-    expected_improvement = sigma*(Z * p_y.cdf(Z) +p_y.prob(Z))
-    return - expected_improvement[0]
+    expected_improvement = diff * p_z.cdf(Z) + sigma * p_z.prob(Z)
+    return - expected_improvement
+
+@jit 
+def log1mexp(z):
+    first = jnp.log(-jnp.expm1(z))
+    second = jnp.log1p(-jnp.exp(z))
+    res = jnp.array([first,second])
+    mask = jnp.array([-jnp.log(2) < z, z <= -jnp.log(2)])
+    return jnp.sum(res*mask)
+
+@jit
+def logerfcx(z):
+    erfc = jax.scipy.special.erfc(z)
+    sq = z**2
+    first = jnp.log(erfc) + sq
+    second = jnp.log(jnp.exp(sq)*erfc)
+    res = jnp.array([first,second])
+    mask = jnp.array([z<0, z>=0])
+
+    return jnp.sum(res*mask)
+
+
+@jit 
+def logEI(x, args):
+    gp, f_best = args
+    m, sigma = inference(gp, jnp.array([x]))
+    p_z = tfd.Normal(loc=0, scale=1)
+
+    c1 = jnp.log(2*jnp.pi)/2
+    c2 = jnp.log(jnp.pi/2)/2
+
+    z = (m-f_best)/sigma
+
+    log_h_gt = jnp.log(p_z.prob(z) + z*p_z.cdf(z))
+    log_h_lt = (-(z**2))/2 - c1 + log1mexp(jnp.abs(z)*logerfcx(-z/jnp.sqrt(2))+c2)
+    both_ans = jnp.array([log_h_gt,log_h_lt])
+    mask = jnp.array([z>-1,z<-1])
+
+    log_h = jnp.sum(both_ans*mask)
+    return -(log_h + jnp.log(sigma))[0]
 
 @jit
 def UCB(x, args):
@@ -319,6 +357,13 @@ def UCB(x, args):
     m, K = inference(gp, jnp.array([x]))
     sigma = jnp.sqrt(K)
     return -(m + 3*sigma)[0]
+
+def LETHAM(x,args):
+    gp_list, f_best_list = args
+    SUM = 0 
+    for gp,f_best in zip(gp_list,f_best_list):
+        SUM += logEI(x,(gp,f_best))
+    return SUM / len(gp_list)
 
 
 def delete_folders(problem_data):
@@ -678,21 +723,41 @@ def upper_env(a,b):
 
     L_i = jnp.argmax(l_store)
     U_i = jnp.argmax(u_store)
+    
 
-    del_i = []
-    for i in range(len(a)):
-        if l_store[i] < l_store[U_i] and u_store[i] < u_store[L_i]:
-            del_i.append(int(i))
+    # z = jnp.linspace(zl,zu,2)
+    # figz,axz = plt.subplots(1,1)
+    # colors = np.linspace(0,1,len(a))
+    # for i in range(len(a)):
+    #     axz.plot([zl,zu],[a[i]*zl + b[i],a[i]*zu + b[i]],c='r',lw=0.5)
+    
+    zl = -3
+    zu = 3
+    l_store = a * zl + b
+    u_store = a * zu + b
+    L_i = jnp.argmax(l_store)
+    U_i = jnp.argmax(u_store)
+    # Create a logical mask where true indicates elements to keep
+    mask = ~(l_store < l_store[U_i]) | ~(u_store < u_store[L_i])
+    # Apply the mask to filter a and b
+    a = a[mask]
+    b = b[mask]
 
-    del_i = jnp.array(del_i)
-    a = jnp.delete(a,del_i)
-    b = jnp.delete(b,del_i)
+
+    # #color list for len(a)
+    # colors = np.linspace(0,1,len(a))
+    # for i in range(len(a)):
+    #     axz.plot([zl,zu],[a[i]*zl + b[i],a[i]*zu + b[i]],c='k',lw=1)
+    # figz.savefig('z.png')
 
     n = len(a)
+
 
     sorted_indices = jnp.argsort(a)
     a = a[sorted_indices]
     b = b[sorted_indices]
+
+
 
     dom_a = jnp.copy(a)
     dom_b = jnp.copy(b)
@@ -733,21 +798,29 @@ def upper_env(a,b):
         if dom_a[i] != dom_a[i]:
             del_store.append(i)
     del_store = jnp.array(del_store)
-    dom_a = jnp.delete(dom_a,del_store)
-    dom_b = jnp.delete(dom_b,del_store)
-    interval_store = jnp.delete(interval_store,del_store,axis=0)
+    try:
+        dom_a = jnp.delete(dom_a,del_store)
+        dom_b = jnp.delete(dom_b,del_store)
+        interval_store = jnp.delete(interval_store,del_store,axis=0)
+    except:
+        dom_a = dom_a
+        dom_b = dom_b
+    
 
     interval_store = jnp.clip(interval_store,zl,zu)
 
-    return dom_a,dom_b,interval_store
 
+    return dom_a,dom_b,interval_store
 
 
 def noisy_EI(x,args):
     gp,f_best,bounds,key = args
     m, s = inference(gp, jnp.array([x]))
-    x_s = lhs(bounds,100,key=key)
-    x_eval = jnp.concatenate((jnp.array([[x]]),x_s),axis=0)
+    x_s = lhs(bounds,0,key=key)
+    while len(x.shape) != len(x_s.shape):
+        x = jnp.array([x])
+    
+    x_eval = jnp.concatenate((x,x_s),axis=0)
     m_s, cov_s = inference_full_cov(gp, x_eval)
     b = m_s[1:]
     a = cov_s[0,1:] / s

@@ -17,11 +17,13 @@ class GeneralObjective:
         self.dataset = pd.read_csv(dataset_path)
         self.x_names = list(self.dataset.columns)[:-1]
         self.y_name = list(self.dataset.columns)[-1]
+        self.y_range = self.dataset[self.y_name].max() - self.dataset[self.y_name].min()
         self.dim = len(self.x_names)
         self.gp_restarts = gp_restarts
         self.dataset_grouping()
         self.normalize_data()
         self.bounds_setting()
+
         self.gp = build_gp_dict(*train_gp(self.input_matrix, jnp.array([self.output_matrix]).T, self.gp_restarts))
 
     def dataset_grouping(self):

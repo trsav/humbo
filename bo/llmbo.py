@@ -11,6 +11,7 @@ from pymoo.operators.mutation.pm import PM
 from pymoo.operators.sampling.rnd import FloatRandomSampling
 from pymoo.termination import get_termination
 import uuid
+from pymoo.termination.default import DefaultMultiObjectiveTermination
 from pymoo.optimize import minimize as minimize_mo
 from reccomender import * 
 
@@ -20,6 +21,9 @@ def llmbo(
     problem_data,
 ):
     path = problem_data["file_name"]
+
+
+
     try:
         os.mkdir(path)
     except FileExistsError:
@@ -54,12 +58,14 @@ def llmbo(
         run_info = {
             "id": str(uuid.uuid4()),
             "inputs": list(sample),
-            "objective": res
+            "objective": res + np.random.normal(0,problem_data['noise'])
         }
 
         data["data"].append(run_info)
 
+
     save_json(data, data_path)
+
 
     data = read_json(data_path)
     for i in range(len(data['data'])):
@@ -100,12 +106,65 @@ def llmbo(
         d = len(inputs[0])
         f_best = np.max(outputs)
         gp = build_gp_dict(*train_gp(inputs, outputs, gp_ms,noise=problem_data['noisy']))
+
+
+            
         util_args = (gp, f_best)
-        if problem_data['acquisition_function'] == 'NOISY_EQ':
-            util_args = (gp, f_best, np.array(bounds),0)
+        if problem_data['noisy'] == True:
+            n_gps = problem_data['letham_gps']
+            gp_list = []
+            f_best_list = []
+            key = jax.random.PRNGKey(0)
+            for i in range(n_gps):
+                mean,std = inference(gp,inputs)
+                det_outputs = []
+                for i in range(len(mean)):
+                    normal = tfd.Normal(loc=mean[i],scale=std[i])
+                    det_outputs.append(normal.sample(seed=key))
+                    key,subkey = jax.random.split(key)
+                det_outputs = np.array([det_outputs]).T
+                new_gp = build_gp_dict(*train_gp(inputs,det_outputs,int(gp_ms/2),noise=False))
+                gp_list.append(new_gp) 
+                f_best_list.append(np.max(det_outputs))
+
+            util_args = (gp_list, f_best_list)
 
 
         aq = vmap(f_aq, in_axes=(0, None))
+
+
+        if problem_data['plot'] == True:
+            fig,ax = plt.subplots(2,1,figsize=(10,6),constrained_layout=True,sharex=True)
+            x_plot = np.linspace(x_bounds[0][0],x_bounds[0][1],200)
+            y_plot = f.eval_vector(x_plot)
+            ax[0].plot(x_plot,y_plot,c='k',label='True Function',ls='dashed')
+            for dat in data['data']:
+                ax[0].scatter(dat['inputs'],dat['objective'],c='k',marker='x')
+
+            for gp in gp_list:
+                x_plot_gp = np.linspace(bounds[0][0],bounds[0][1],200)
+                gp_m,gp_s = inference(gp,x_plot_gp)
+                gp_m = gp_m * std_outputs + mean_outputs
+                gp_s = gp_s * std_outputs
+                ax[0].plot(x_plot,gp_m,c='k')
+                ax[0].fill_between(x_plot,gp_m - 2*gp_s,gp_m + 2*gp_s,color='k',lw=0,alpha=0.2)
+
+            ax[0].legend(frameon=False)
+            fig.savefig('true_function.png',dpi=200)
+
+
+            v_EI = vmap(logEI, in_axes=(0, None))
+            for gp in gp_list:
+                aq_plot = v_EI(x_plot_gp,(gp,f_best))
+                ax[1].plot(x_plot[:len(aq_plot)],-np.array(aq_plot),c='r',alpha=0.5)
+
+
+            v_aq = vmap(f_aq, in_axes=(0, None))
+            aq_plot = v_aq(x_plot_gp,util_args)
+            ax[1].set_yscale('symlog')
+
+            ax[1].plot(x_plot[:len(aq_plot)],-np.array(aq_plot),c='k')
+            fig.savefig('true_function.png',dpi=200)
 
         # optimising the aquisition of inputs, disregarding fidelity
         print("Optimising utility function...")
@@ -119,8 +178,7 @@ def llmbo(
             method="l-bfgs-b",
             jit=True,
             fun=f_aq,
-            tol=1e-12,
-            maxiter=500
+            tol=1e-10,
         )
 
         def optimise_aq(s):
@@ -148,7 +206,12 @@ def llmbo(
             n_opt = int(len(bounds) * (alternatives-1))
             upper_bounds = jnp.repeat(upper_bounds_single, alternatives-1)
             lower_bounds = jnp.repeat(lower_bounds_single, alternatives-1)
-            termination = get_termination("n_gen", problem_data["NSGA_iters"])
+            termination = DefaultMultiObjectiveTermination(
+            xtol=problem_data['NSGA_xtol'],
+            ftol=problem_data['NSGA_ftol'],
+            period=30,
+            n_max_gen=10000,
+            n_max_evals=100000)
 
             algorithm = NSGA2(
                 pop_size=50,
@@ -308,7 +371,7 @@ def llmbo(
             "inputs": list(x_opt),
         }
 
-        run_info["objective"] = f_eval
+        run_info["objective"] = f_eval + np.random.normal(0,problem_data['noise'])
         run_info["id"] = str(uuid.uuid4())
 
         if problem_data['human_behaviour'] == 'llmbo':
