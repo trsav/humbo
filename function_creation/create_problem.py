@@ -9,14 +9,14 @@ import matplotlib.pyplot as plt
 
 
 def create_problem(key, l, d):
-    n = 200
+    n = 300
     x_l = 0.0
     x_u = 1.0
 
     if d == 1:
         x_b = jnp.linspace(x_l, x_u, n)
     else:
-        n = 200 * d
+        n = 300 * d
         x_b = jnp.linspace(x_l, x_u, int(n ** (1 / d)))
         x_b = jnp.meshgrid(*[x_b for _ in range(d)])
         x_b = jnp.vstack([x_b[i].flatten() for i in range(d)]).T
@@ -51,7 +51,7 @@ def create_problem(key, l, d):
         objective=negative_mll,
         train_data=D,
         optim=ox.adam(learning_rate=0.2),
-        num_iters=500,
+        num_iters=750,
         key=random.PRNGKey(0),
     )
 

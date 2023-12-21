@@ -105,7 +105,7 @@ def llmbo(
 
         d = len(inputs[0])
         f_best = np.max(outputs)
-        gp = build_gp_dict(*train_gp(inputs, outputs, gp_ms,noise=problem_data['noisy']))
+        gp = build_gp_dict(*train_gp(inputs, outputs, gp_ms,its=10000,noise=problem_data['noisy']))
 
 
             
@@ -141,30 +141,42 @@ def llmbo(
             for dat in data['data']:
                 ax[0].scatter(dat['inputs'],dat['objective'],c='k',marker='x')
 
-            for gp in gp_list:
+            if problem_data['acquisition_function'] == 'LETHAM':
+                for gp in gp_list:
+                    x_plot_gp = np.linspace(bounds[0][0],bounds[0][1],200)
+                    gp_m,gp_s = inference(gp,x_plot_gp)
+                    gp_m = gp_m * std_outputs + mean_outputs
+                    gp_s = gp_s * std_outputs
+                    ax[0].plot(x_plot,gp_m,c='k')
+                    ax[0].fill_between(x_plot,gp_m - 2*gp_s,gp_m + 2*gp_s,color='k',lw=0,alpha=0.2)
+
+                v_EI = vmap(logEI, in_axes=(0, None))
+                for gp in gp_list:
+                    aq_plot = v_EI(x_plot_gp,(gp,f_best))
+                    ax[1].plot(x_plot[:len(aq_plot)],-np.array(aq_plot),c='r',alpha=0.5)
+
+                aq_plot = aq(x_plot_gp,util_args)
+                ax[1].plot(x_plot[:len(aq_plot)],-np.array(aq_plot),c='k')
+                ax[1].set_yscale('symlog')
+
+
+            else:
                 x_plot_gp = np.linspace(bounds[0][0],bounds[0][1],200)
                 gp_m,gp_s = inference(gp,x_plot_gp)
                 gp_m = gp_m * std_outputs + mean_outputs
                 gp_s = gp_s * std_outputs
                 ax[0].plot(x_plot,gp_m,c='k')
                 ax[0].fill_between(x_plot,gp_m - 2*gp_s,gp_m + 2*gp_s,color='k',lw=0,alpha=0.2)
+                aq_plot = aq(x_plot_gp,util_args)
+                ax[1].plot(x_plot[:len(aq_plot)],-np.array(aq_plot),c='k',alpha=0.5)
+
+
 
             ax[0].legend(frameon=False)
-            fig.savefig('true_function.png',dpi=200)
 
 
-            v_EI = vmap(logEI, in_axes=(0, None))
-            for gp in gp_list:
-                aq_plot = v_EI(x_plot_gp,(gp,f_best))
-                ax[1].plot(x_plot[:len(aq_plot)],-np.array(aq_plot),c='r',alpha=0.5)
-
-
-            v_aq = vmap(f_aq, in_axes=(0, None))
-            aq_plot = v_aq(x_plot_gp,util_args)
-            ax[1].set_yscale('symlog')
-
-            ax[1].plot(x_plot[:len(aq_plot)],-np.array(aq_plot),c='k')
-            fig.savefig('true_function.png',dpi=200)
+            # fig.savefig('true_function.png',dpi=200)
+            fig.savefig(path + '/plot_' + str(iteration) + '.png',dpi=200)
 
         # optimising the aquisition of inputs, disregarding fidelity
         print("Optimising utility function...")
@@ -172,7 +184,7 @@ def llmbo(
         lower_bounds_single = jnp.array([b[0] for b in bounds])
 
         opt_bounds = (lower_bounds_single, upper_bounds_single)
-        s_init = jnp.array(sample_bounds(x_bounds, 36))
+        s_init = jnp.array(sample_bounds(x_bounds, 256))
         
         solver = bounded_solver(
             method="l-bfgs-b",

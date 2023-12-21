@@ -190,7 +190,7 @@ def plot_function(f,path):
     plt.savefig(path)
     return
 
-def train_gp(inputs, outputs, ms,its=2000,noise=False):
+def train_gp(inputs, outputs, ms,its=4000,noise=False):
     # creating a set of initial GP hyper parameters (log-spaced)
     p_num = len(inputs[0, :])
 
@@ -310,7 +310,7 @@ def EI(x, args):
     p_z = tfd.Normal(loc=0, scale=1)
     Z = diff / sigma
     expected_improvement = diff * p_z.cdf(Z) + sigma * p_z.prob(Z)
-    return - expected_improvement
+    return - expected_improvement[0]
 
 @jit 
 def log1mexp(z):
@@ -362,7 +362,7 @@ def LETHAM(x,args):
     gp_list, f_best_list = args
     SUM = 0 
     for gp,f_best in zip(gp_list,f_best_list):
-        SUM += logEI(x,(gp,f_best))
+        SUM += UCB(x,(gp,f_best))
     return SUM / len(gp_list)
 
 

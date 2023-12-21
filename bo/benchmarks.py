@@ -18,7 +18,7 @@ import gc
 import resource
 import argparse
 
-aqs = {'logEI':logEI,'UCB':UCB,'NOISY_EI':noisy_EI,'LETHAM':LETHAM}
+aqs = {'logEI':logEI,'UCB':UCB,'NOISY_EI':noisy_EI,'LETHAM':LETHAM,'EI':EI}
 
 def specific_functions(array_index,b_index,noise_std):
 
@@ -34,7 +34,7 @@ def specific_functions(array_index,b_index,noise_std):
 
     problem_data = {}
     problem_data["sample_initial"] = 4
-    problem_data["gp_ms"] = 4
+    problem_data["gp_ms"] = 8
     problem_data["alternatives"] = 4
     problem_data["NSGA_xtol"] = 1e-5
     problem_data["NSGA_ftol"] = 0.02
@@ -67,7 +67,7 @@ def specific_functions(array_index,b_index,noise_std):
     else:
         problem_data["noisy"] = False
         problem_data['noise'] = 0.0
-        problem_data['acquisition_function'] = 'logEI'
+        problem_data['acquisition_function'] = 'UCB'
 
 
     file = f.name + '_' + str(uuid.uuid4())
@@ -93,10 +93,10 @@ def rkhs_functions(array_index, b_index,noise_std):
     except FileExistsError:
         pass
 
-    human_behaviours = ['expert','adversarial','trusting',0.25,0.5,0.75]
+    human_behaviours = ['trusting','adversarial','expert',0.25,0.5,0.75]
     problem_data = {}
     problem_data["sample_initial"] = 4
-    problem_data["gp_ms"] = 4
+    problem_data["gp_ms"] = 8
     problem_data["alternatives"] = 4
     problem_data["NSGA_xtol"] = 1e-5
     problem_data["NSGA_ftol"] = 0.02
@@ -126,11 +126,12 @@ def rkhs_functions(array_index, b_index,noise_std):
 
     else:
         problem_data["noisy"] = False
-        problem_data['noise'] = 0.0
-        aq = 'logEI'
+        problem_data['noise'] = 0.00
+        aq = 'UCB'
 
     problem_data['acquisition_function'] = aq
     file = str(uuid.uuid4())
+
     path = res_path + file + "/"
     problem_data['file_name'] = path
     problem_data['plot'] = False
@@ -181,7 +182,7 @@ def real_functions(array_index,b_index,noise_std):
 
     problem_data = {}
     problem_data["sample_initial"] = 4
-    problem_data["gp_ms"] = 4
+    problem_data["gp_ms"] = 8
     problem_data["alternatives"] = 4
     problem_data["plot"] = False
     problem_data["NSGA_xtol"] = 1e-5
@@ -205,7 +206,7 @@ def real_functions(array_index,b_index,noise_std):
     else:
         problem_data["noisy"] = False
         problem_data['noise'] = 0.0
-        aq = 'logEI'
+        aq = 'UCB'
 
     problem_data['acquisition_function'] = aq
     problem_data['time_created'] = str(datetime.datetime.now())
@@ -249,8 +250,8 @@ if __name__ == "__main__":
     try:
         args = parser.parse_args()
     except:
-        # rkhs_functions(0,0,0.1)
-        real_functions(2,0,0.1)
+        rkhs_functions(0,0,0.05)
+        # real_functions(2,0,0.1)
         # specific_functions(0,0,0.1)
     
     a_i = int(args.array_index)
