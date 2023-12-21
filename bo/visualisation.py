@@ -513,14 +513,14 @@ def bo(
 
 aq = 'UCB'
 problem_data = {}
-problem_data["sample_initial"] = 4
+problem_data["sample_initial"] = 2
 problem_data["gp_ms"] = 16
 problem_data["alternatives"] = 4
 problem_data["NSGA_iters"] = 200
 problem_data['deterministic_initial'] = 'true'
 problem_data['max_iterations'] = 60
 problem_data['plotting'] = True
-problem_data['acquisition_function'] = 'UCB'
+problem_data['acquisition_function'] = aq
 problem_data['time_created'] = str(datetime.datetime.now())
 
 problem_data['dim'] = 1
@@ -529,7 +529,7 @@ problem_data['human_behaviour'] = 'expert'
 k = jax.random.PRNGKey(10)
 f = Function(create_problem(k,0.04,problem_data['dim']))
 
-file = "1D_vis"
+file = "1D_vis_"
 problem_data['file_name'] = "bo/plots/" + file
 problem_data['function'] = file
 

@@ -43,6 +43,10 @@ class SimpleFunction:
 
 
 class Branin:
+    '''
+    LaTeX: f(\mathbf{x}) = a (x_2 - b x_1^2 + c x_1 - r)^2 + s (1 - t) \cos(x_1) + s 
+    where a = 1, b = 5.1 / (4 \pi^2), c = 5 / \pi, r = 6, s = 10, t = 1 / (8 \pi)
+    '''
     def __init__(self, d):
         self.name = "Branin"
         self.bounds = jnp.array([[-5, 10], [0, 15]])
@@ -63,6 +67,10 @@ class Branin:
 
 
 class Ackley:
+    '''
+    LaTeX: f(\mathbf{x}) = -a \exp \left( -b \sqrt{\frac{1}{d} \sum_{i=1}^d x_i^2} \right) - \exp \left( \frac{1}{d} \sum_{i=1}^d \cos(c x_i) \right) + a + \exp(1)
+    where a = 20, b = 0.2, c = 2 \pi
+    '''
     def __init__(self, d):
         self.name = "Ackley" + str(d)
         self.bounds = jnp.array([[-32.768, 32.768]] * d)
@@ -86,6 +94,11 @@ class Ackley:
 
 
 class Griewank:
+    '''
+    LaTeX: f(\mathbf{x}) = \frac{1}{4000} \sum_{i=1}^d x_i^2 - \prod_{i=1}^d \cos \left( \frac{x_i}{\sqrt{i}} \right) + 1
+    '''
+    
+    
     def __init__(self, d):
         self.name = "Griewank" + str(d)
         self.bounds = jnp.array([[-600, 600]] * d)
@@ -104,6 +117,9 @@ class Griewank:
 
 
 class Rastrigin:
+    '''
+    LaTeX: f(\mathbf{x}) = 10d + \sum_{i=1}^d \left[ x_i^2 - 10 \cos(2 \pi x_i) \right] 
+    '''
     def __init__(self, d):
         self.name = "Rastrigin" + str(d)
         self.bounds = jnp.array([[-5.12, 5.12]] * d)
@@ -122,6 +138,9 @@ class Rastrigin:
 
 
 class Rosenbrock:
+    '''
+    LaTeX: f(\mathbf{x}) = \sum_{i=1}^{d-1} \left[ 100 (x_{i+1} - x_i^2)^2 + (x_i - 1)^2 \right]
+    '''
     def __init__(self, d):
         self.name = "Rosenbrock" + str(d)
         self.bounds = jnp.array([[-5, 10]] * d)
@@ -137,6 +156,9 @@ class Rosenbrock:
 
     
 class StyblinskiTang:
+    '''
+    LaTeX: f(\mathbf{x}) = \frac{1}{2} \sum_{i=1}^d \left[ x_i^4 - 16 x_i^2 + 5 x_i \right] 
+    '''
     def __init__(self, d):
         self.name = "StyblinskiTang" + str(d)
         self.bounds = jnp.array([[-5, 5]] * d)

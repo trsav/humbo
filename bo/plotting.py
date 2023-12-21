@@ -25,6 +25,9 @@ from matplotlib import rc
 from utils import * 
 import matplotlib.font_manager
 import matplotlib as mpl
+import sys
+sys.path.insert(1, os.path.join(sys.path[0], ".."))
+from function_creation.function import *
 
 from pathlib import Path
 
@@ -36,7 +39,7 @@ rc('font',**{'family':'sans-serif','sans-serif':['Arial']})
 rc('text', usetex=True)
 fpath = 'Arial'
 
-def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc): 
+def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc,noise): 
 
     try:
         func = problem_data['function']
@@ -48,12 +51,11 @@ def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc):
     problem_data_list = []
     for i in tqdm(range(len(files))):
         if func_flag != True:
-            if '.' not in files[i]:
-                results = directory+'/'+files[i] + '/res.json'
-                # open json
-                with open(results, "r") as f:
-                    data = json.load(f)
-                problem_data_list.append(data['problem_data'])
+            results = directory+'/'+files[i] + '/res.json'
+            # open json
+            with open(results, "r") as f:
+                data = json.load(f)
+            problem_data_list.append(data['problem_data'])
         else:
             if '.' not in files[i] and func in files[i]:
                 results = directory+'/'+files[i] + '/res.json'
@@ -65,13 +67,15 @@ def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc):
         
     # create dataframe from list of dictionaries 
     df = pd.DataFrame(problem_data_list)
+    if noise > 0:
+        print('here')
     if func_flag == False:
-        df = df.loc[(df['human_behaviour'] == problem_data['human_behaviour']) & (df['acquisition_function'] == problem_data['acquisition_function']) & (df['dim'] == problem_data['dim'])]
+        df = df.loc[(df['human_behaviour'] == problem_data['human_behaviour']) & (df['dim'] == problem_data['dim']) & (np.abs(df['noise'] - noise) < 1e-8)]
     else:
-        df = df.loc[(df['human_behaviour'] == problem_data['human_behaviour']) & (df['acquisition_function'] == problem_data['acquisition_function']) & (df['function'] == problem_data['function'])]
+        df = df.loc[(df['human_behaviour'] == problem_data['human_behaviour']) & (df['function'] == problem_data['function']) & (np.abs(df['noise'] - noise) < 1e-8)]
+
 
     label = problem_data['human_behaviour']
-    problem_data = problem_data_list[0]
     file_names = df['file_name'].values
     regret_list, obj_list, f_opt_list = [], [], []
     for file in file_names:
@@ -82,6 +86,7 @@ def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc):
         obj = [d['objective'] for d in data]
         f_opt_list.append(f_opt)
         obj_list.append(obj)
+        problem_data = data_full['problem_data']
     init = problem_data['sample_initial']
     full_it = problem_data['max_iterations']
 
@@ -101,6 +106,7 @@ def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc):
         average_regret = [f_opt_list[i] - (1/t) * np.sum(obj[:t]) for t in range(1,it+1)]
         average_regret_list.append(average_regret)
 
+    max_it = min(len(regret_list[0]),max_it)
     regret_list = np.array(regret_list)[:,:max_it]
     average_regret = np.mean(np.array(average_regret_list),axis=0)[:max_it]
     average_regret_std = np.std(np.array(average_regret_list),axis=0)[:max_it]
@@ -173,7 +179,7 @@ def format_plot(fig,axs,s_i):
     return fig,axs
 
 
-def plot_rkhs(aq,d,max_it,b_w=False):
+def plot_rkhs(noise,d,max_it,b_w=False):
     directory = 'bo/benchmark_results_rkhs'
     human_behaviours = ['expert','adversarial','trusting',0.75,0.5,0.25]
 
@@ -185,41 +191,41 @@ def plot_rkhs(aq,d,max_it,b_w=False):
         problem_data['dim'] = d
         # at a given human behaviour
         problem_data['human_behaviour'] = human_behaviours[i]
-        problem_data['acquisition_function'] = aq
+        problem_data['noise'] = noise
         
         if b_w == False:
             colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
             try:
-                s_i = plot_regret(problem_data,axs,colors[i],directory,max_it,b_w,unc=True)
-                plt.savefig('bo/plots/rkhs_d_'+str(d)+'.pdf')
+                s_i = plot_regret(problem_data,axs,colors[i],directory,max_it,b_w,unc=True,noise=noise)
+                plt.savefig('bo/plots/rkhs/d_'+str(d)+'_noise_'+str(noise)+'.pdf')
             except:
                 pass
         if b_w == True:
             lines = ['-','--','-.',':',(0,1,10),(0, (3, 5, 1, 5, 1, 5))]
             try:
-                s_i = plot_regret(problem_data,axs,lines[i],directory,max_it,b_w,unc=True)
-                plt.savefig('bo/plots/rkhs_d_'+str(d)+'.pdf')
+                s_i = plot_regret(problem_data,axs,lines[i],directory,max_it,b_w,unc=True,noise=noise)
+                plt.savefig('bo/plots/rkhs/d_'+str(d)+'_noise_'+str(noise)+'.pdf')
             except:
                 pass
     fig,axs = format_plot(fig,axs,s_i)
     try:
-        plt.savefig('bo/plots/rkhs_d_'+str(d)+'.pdf')
+        plt.savefig('bo/plots/rkhs/d_'+str(d)+'_noise_'+str(noise)+'.pdf')
     except:
         os.mkdir('bo/plots')
 
 
-def plot_specific(max_it,b_w):
+def plot_specific(noise,max_it,b_w):
     directory = 'bo/benchmark_results_specific'
     colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
     human_behaviours = ['expert','adversarial','trusting',0.75,0.5,0.25]
 
-    functions = ['Branin']
+    functions = [Branin(2)]
     for i in [2,5,10]:
-        functions.append('Ackley'+str(i))
-        functions.append('Griewank'+str(i))
-        functions.append('Powell'+str(i))
-        functions.append('Rastrigin'+str(i))
-        functions.append('Rosenbrock'+str(i))
+        functions.append(Ackley(i))
+        functions.append(Griewank(i))
+        functions.append(StyblinskiTang(i))
+        functions.append(Rastrigin(i))
+        functions.append(Rosenbrock(i))
 
     for function in functions:
         fig,axs = plt.subplots(1,2,figsize=(9,2.5))
@@ -228,32 +234,34 @@ def plot_specific(max_it,b_w):
             # for this problem data
             problem_data = {}
             problem_data['human_behaviour'] = human_behaviours[i]
-            problem_data['acquisition_function'] = 'UCB'
-            problem_data['function'] = function
+            problem_data['function'] = function.name
+            
+            noise_scaled = noise * jnp.abs(function.f_max - function.f_opt).item()
+
             if b_w == False:
                 colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
                 try:
-                    s_i = plot_regret(problem_data,axs,colors[i],directory,max_it,b_w,unc=False)
+                    s_i = plot_regret(problem_data,axs,colors[i],directory,max_it,b_w,unc=False,noise=noise_scaled)
                 except:
                     pass
             if b_w == True:
                 lines = ['-','--','-.',':',(0,1,10),(0, (3, 5, 1, 5, 1, 5))]
                 try:
-                    s_i = plot_regret(problem_data,axs,lines[i],directory,max_it,b_w,unc=False)
+                    s_i = plot_regret(problem_data,axs,lines[i],directory,max_it,b_w,unc=False,noise=noise_scaled)
                 except:
                     pass
 
         fs = 12
-        if function.split('1')[-1] == '0':
+        if function.name.split('1')[-1] == '0':
             n = str(10)
-            func_name = function.split('1')[0]
+            func_name = function.name.split('1')[0]
         else:
-            n = function[-1]
-            func_name = function[:-1]
+            n = function.name[-1]
+            func_name = function.name[:-1]
         axs[1].text(0.95, 0.95, func_name + ': $d= $'+n, horizontalalignment='right',verticalalignment='top', transform=axs[1].transAxes,fontsize=12,bbox=dict(facecolor='white',edgecolor='none',pad=0.5))
 
         fig,axs = format_plot(fig,axs,s_i)
-        plt.savefig('bo/plots/overall_regret_'+function+'.png',dpi=400)
+        plt.savefig('bo/plots/specific/'+function.name+'_noise_'+str(noise)+'.png',dpi=400)
 
 
 def plot_real(max_it,b_w):
@@ -302,9 +310,9 @@ def plot_real(max_it,b_w):
 
 # plot_human('EI',1)
 b_w = False
-# plot_rkhs('UCB',1,25,b_w)
-# plot_rkhs('UCB',2,60,b_w)
-# plot_rkhs('UCB',5,60,b_w)
-# plot_rkhs('UCB',5,60,b_w)
-#plot_specific(60,b_w)
-plot_real(50,b_w)
+for noise in [0.0,0.01,0.05]:
+    # plot_rkhs(noise,1,1000,b_w)
+    # plot_rkhs(noise,2,1000,b_w)
+    # plot_rkhs(noise,5,1000,b_w)
+    plot_specific(noise,1000,b_w)
+#plot_real(50,b_w)
