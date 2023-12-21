@@ -49,7 +49,7 @@ def specific_functions(array_index,b_index,noise_std):
         f_store.append(Rosenbrock(i))
         f_store.append(StyblinskiTang(i))
 
-    repeats = 32
+    repeats = 24
     f_key = array_index // repeats
     repeat = array_index % repeats
 
@@ -60,6 +60,7 @@ def specific_functions(array_index,b_index,noise_std):
     if noise_std > 1e-8:
         problem_data["noisy"] = True
         problem_data['noise'] = noise_std * jnp.abs(f.f_max - f.f_opt).item()
+        print(problem_data['noise'])
         problem_data['acquisition_function'] = 'LETHAM'
         problem_data['letham_gps'] = 8
         problem_data['max_iterations'] = problem_data['max_iterations'] * 2
@@ -117,12 +118,14 @@ def rkhs_functions(array_index, b_index,noise_std):
     key = random.PRNGKey(f_keys[f_key])
     f = Function(create_problem(key,0.04,problem_data['dim']))
     problem_data['max_iterations'] = 60
+    file = str(uuid.uuid4())
     if noise_std > 1e-8:
         aq = 'LETHAM'
         problem_data["noisy"] = True
         problem_data['noise'] = noise_std 
         problem_data['max_iterations'] = problem_data['max_iterations'] * 2
         problem_data['letham_gps'] = 8
+        file += '_noisy_' + str(noise_std)
 
     else:
         problem_data["noisy"] = False
@@ -130,7 +133,6 @@ def rkhs_functions(array_index, b_index,noise_std):
         aq = 'UCB'
 
     problem_data['acquisition_function'] = aq
-    file = str(uuid.uuid4())
 
     path = res_path + file + "/"
     problem_data['file_name'] = path
