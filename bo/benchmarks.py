@@ -33,26 +33,25 @@ def specific_functions(array_index,b_index,noise_std):
     human_behaviours = ['expert','adversarial','trusting',0.25,0.5,0.75]
 
     problem_data = {}
-    problem_data["sample_initial"] = 4
+    problem_data["sample_initial"] = 8
     problem_data["gp_ms"] = 8
     problem_data["alternatives"] = 4
-    problem_data["NSGA_xtol"] = 1e-5
-    problem_data["NSGA_ftol"] = 0.02
+    problem_data["NSGA_xtol"] = 1e-6
+    problem_data["NSGA_ftol"] = 0.01
 
     problem_data['time_created'] = str(datetime.datetime.now())
 
     f_store = [Branin(2)]
-    for i in [2,5,10]:
+    for i in [2,3,5]:
         f_store.append(Ackley(i))
         f_store.append(Griewank(i))
         f_store.append(Rastrigin(i))
         f_store.append(Rosenbrock(i))
-        f_store.append(StyblinskiTang(i))
+        # f_store.append(StyblinskiTang(i))
 
-    repeats = 24
+    repeats = 32
     f_key = array_index // repeats
     repeat = array_index % repeats
-
 
     f = f_store[f_key]
 
@@ -63,12 +62,12 @@ def specific_functions(array_index,b_index,noise_std):
         print(problem_data['noise'])
         problem_data['acquisition_function'] = 'LETHAM'
         problem_data['letham_gps'] = 8
-        problem_data['max_iterations'] = problem_data['max_iterations'] * 2
+        problem_data['max_iterations'] = problem_data['max_iterations']
 
     else:
         problem_data["noisy"] = False
         problem_data['noise'] = 0.0
-        problem_data['acquisition_function'] = 'UCB'
+        problem_data['acquisition_function'] = 'EI'
 
 
     file = f.name + '_' + str(uuid.uuid4())

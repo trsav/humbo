@@ -153,7 +153,35 @@ class Rosenbrock:
         x = jnp.array(x)
         f = jnp.sum(100 * (x[1:] - x[:-1] ** 2) ** 2 + (x[:-1] - 1) ** 2)
         return -f.item()
+    
+class Levi:
 
+    def __init__(self,d):
+        self.name = "Levi" + str(d)
+        self.bounds = jnp.array([[-10, 10]] * d)
+        self.f_opt = 0
+        self.f_max = 80
+    
+    def __call__(self,x):
+        d = len(x)
+        x = jnp.array(x)
+        w = 1 + (x - 1) / 4
+        f = jnp.sin(jnp.pi * w[0]) ** 2 + jnp.sum((w[:-1] - 1) ** 2 * (1 + 10 * jnp.sin(jnp.pi * w[:-1] + 1) ** 2)) + (w[-1] - 1) ** 2 * (1 + jnp.sin(2 * jnp.pi * w[-1]) ** 2)
+        return -f.item()
+
+
+f = Levi(2)
+plt.figure()
+x = np.linspace(-10,10,100)
+y = np.linspace(-10,10,100)
+X,Y = np.meshgrid(x,y)
+Z = np.zeros_like(X)
+for i in range(100):
+    for j in range(100):
+        Z[i,j] = f([X[i,j],Y[i,j]])
+plt.contourf(X,Y,Z)
+plt.colorbar()
+plt.show()
     
 class StyblinskiTang:
     '''

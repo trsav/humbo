@@ -362,7 +362,7 @@ def LETHAM(x,args):
     gp_list, f_best_list = args
     SUM = 0 
     for gp,f_best in zip(gp_list,f_best_list):
-        SUM += UCB(x,(gp,f_best))
+        SUM += EI(x,(gp,f_best))
     return SUM / len(gp_list)
 
 

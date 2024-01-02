@@ -1,5 +1,5 @@
 function="specific_functions"
-A_TOTAL="383"
+A_TOTAL="415"
 
 log_path="${function}_logs"
 
@@ -7,7 +7,7 @@ if [ ! -d "$log_path" ]; then
   mkdir -p "$log_path"
 fi
 
-for noise in 0 0.05 0.2 do
+for noise in 0 0.025 0.05; do
   for B in {0..6}; do
       UUID="job_$(uuidgen | cut -c 1-8)"
       log_name="${log_path}/logs_${UUID}.out"
