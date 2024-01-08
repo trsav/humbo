@@ -169,19 +169,20 @@ class Levi:
         f = jnp.sin(jnp.pi * w[0]) ** 2 + jnp.sum((w[:-1] - 1) ** 2 * (1 + 10 * jnp.sin(jnp.pi * w[:-1] + 1) ** 2)) + (w[-1] - 1) ** 2 * (1 + jnp.sin(2 * jnp.pi * w[-1]) ** 2)
         return -f.item()
 
+class Schewefel:
+    def __init__(self,d):
+        self.name = "Schewefel" + str(d)
+        self.bounds = jnp.array([[-500, 500]] * d)
+        self.f_opt = 0
+        self.f_max = 1600
 
-f = Levi(2)
-plt.figure()
-x = np.linspace(-10,10,100)
-y = np.linspace(-10,10,100)
-X,Y = np.meshgrid(x,y)
-Z = np.zeros_like(X)
-for i in range(100):
-    for j in range(100):
-        Z[i,j] = f([X[i,j],Y[i,j]])
-plt.contourf(X,Y,Z)
-plt.colorbar()
-plt.show()
+    def __call__(self,x):
+        d = len(x)
+        x = jnp.array(x)
+        f = 418.9829 * d - jnp.sum(x * jnp.sin(jnp.sqrt(jnp.abs(x))))
+        return -f.item()
+
+
     
 class StyblinskiTang:
     '''

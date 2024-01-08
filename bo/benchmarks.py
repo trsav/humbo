@@ -41,8 +41,10 @@ def specific_functions(array_index,b_index,noise_std):
 
     problem_data['time_created'] = str(datetime.datetime.now())
 
-    f_store = [Branin(2)]
+    f_store = []
     for i in [2,3,5]:
+        f_store.append(Levi(i))
+        f_store.append(Schewefel(i))
         f_store.append(Ackley(i))
         f_store.append(Griewank(i))
         f_store.append(Rastrigin(i))
