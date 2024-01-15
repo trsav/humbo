@@ -34,7 +34,7 @@ def humbo(
 
 
     # create csv for initial data with header of f.x_names
-    pd.DataFrame(columns=f.x_names).to_excel(f.name+"_initial_data.xlsx",index=False)
+    pd.DataFrame(columns=f.x_names).to_excel(path+'/'+f.name+"_initial_data.xlsx",index=False)
 
     print('The bounds of the problem are as follows: ')
 
@@ -47,12 +47,11 @@ def humbo(
 
     gp_ms = problem_data["gp_ms"]
 
-
-    print('Edit the '+f.name+"_initial_data.xlsx"+' file with any initial solutions, ensure the solutions are within the stated bounds, then press any key.')
+    print('Edit the '+path+'/'+f.name+"_initial_data.xlsx"+' file with any initial solutions, ensure the solutions are within the stated bounds, then press any key.')
     input()
 
     # read in initial data
-    initial_data = pd.read_excel(f.name+"_initial_data.xlsx")
+    initial_data = pd.read_excel(path+'/'+f.name+"_initial_data.xlsx")
     initial_data = initial_data.to_numpy()
     if len(initial_data) == 0:
         lhs_key = 0 # key for deterministic initial sample for expectation over functions
@@ -268,8 +267,19 @@ def humbo(
         previous_iterations = 5
 
         prompt_data = {'previous_iterations':data['data'][-previous_iterations:]}
+        
+        try:
+            os.mkdir(path + '/choices')
+        except FileExistsError:
+            shutil.rmtree(path + '/choices')
+            os.mkdir(path + '/choices')
+
+        for i in range(len(x_alternates)):
+            f.plot_solution(x_alternates[i],path + '/choices/choice_'+str(i+1)+'.png')
 
         create_human_prompt(f,x_names,x_alternates,aq_list,prompt_data,mean_alt,var_alt)
+
+        print('Remember to check solution visualisations in '+path+'/choices/ before making a choice.')
 
         choice = input('Enter choice: ')
         choice = int(choice)
@@ -344,7 +354,7 @@ problem_data['time_created'] = str(datetime.datetime.now())
 # problem_data['llm_location'] = "llama.cpp/models/zephyr-7b-alpha.Q4_K_M.gguf"
 
 problem_data['include_previous_justification'] = False
-file = f.name + '_' + str(uuid.uuid4())
+file = f.name 
 path = res_path + file + "/"
 problem_data['file_name'] = path
 

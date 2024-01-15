@@ -1,4 +1,5 @@
 import sys
+from matplotlib import gridspec
 import os
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 from bo.utils import *
@@ -98,3 +99,50 @@ class Reactor(GeneralObjective):
     a closer approximation to plug-flow behaviour, and better mixing. 
         ''',
         obj_type = "max")
+
+    # create a method which produces a plot of a given solution (x)
+    @staticmethod
+    def plot_solution(x,path_name):
+
+        a, f, re, pitch, coil_rad = x
+        v = (re * 9.9 * 10**-4) / (990 * 0.005)
+
+        fig = plt.figure(figsize=(9, 4))
+        gs = gridspec.GridSpec(1, 2, width_ratios=[2, 1]) 
+        ax = fig.add_subplot(gs[0])
+        x = np.linspace(0, 1, 300)
+        y = np.sin(2 * np.pi * f * x) * a + v
+        ax.plot(x, y,color='black',lw=3)
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel('Inlet Velocity (m/s)')
+        ax.set_xlim([0,1])
+        ax.set_ylim([-0.01,0.02])
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        
+        n = 100
+        l = 0.0875
+        rot = l/(2 * np.pi * coil_rad)
+        h = rot * pitch 
+
+        rho = np.linspace(0, 2 * np.pi * rot, n)    
+        z = np.linspace(0, h, n)
+        theta = np.array([coil_rad for i in range(n)])
+
+        x = theta * np.cos(rho)
+        y = theta * np.sin(rho)
+        z = z
+
+        ax = fig.add_subplot(gs[1], projection='3d')
+        ax.set_aspect('equal')
+        ax.set_xlim([-0.02,0.02])
+        ax.set_ylim([-0.02,0.02])
+        ax.set_zlim([0,0.02])
+        a_l = np.linspace(0,1,5)
+        for i in range(5):
+            a = a_l[i]
+            ax.plot(x,y,z,lw=a*10,alpha=(1-a),color='black')
+        fig.tight_layout()
+        fig.savefig(path_name)
+
+
