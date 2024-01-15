@@ -3,6 +3,7 @@ import json
 import openai
 import numpy as np 
 from utils import * 
+from tabulate import tabulate
 
 def create_prompt(f,x_names,x,u,data,subject,objective_description,prev_justifications):
     prompt =  " You are an expert in " + subject + " You have been the following context:\n"
@@ -121,3 +122,45 @@ def post_process_local(res):
 def post_process_remote(res):
     res = json.loads(res)
     return res
+
+np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
+
+def create_human_prompt(f,x_names,x,u,data,mean,var):
+
+    table = []
+    round = 3
+
+    prev_data_len = len(data['previous_iterations'])
+    for i in range(prev_data_len):
+        x_clean = {}
+        for j in range(len(data['previous_iterations'][i]['inputs'])):
+            x_val = (data['previous_iterations'][i]['inputs'][j])
+            x_val = np.round(x_val,round)
+            try:
+                x_clean[x_names[j]] = x_val.item()
+            except:
+                x_clean[x_names[j]] = x_val
+
+        x_var = [xv for xv in x_clean.values()]
+        table_row = [data['previous_iterations'][i]['objective']] + x_var
+        table.append(table_row)
+    table = np.array(table) 
+    
+    header = ['Objective'] + x_names
+    print('\n Below are the previous '+str(prev_data_len)+' iterations and objectives.\n')
+    print(tabulate(headers=header,tabular_data=table,tablefmt='fancy_grid'))
+    for i in range(len(x)):
+        for j in range(len(x[i])):
+            x[i][j] = np.round(x[i][j],round)
+
+    table = []
+    for i in range(len(x)):
+        table_row = [i+1,u[i],mean[i],var[i]] + x[i]
+        table.append(table_row)
+    table = np.array(table)
+
+    header = ['Choice','Utility','Solution Mean','Solution Standard Deviation'] + x_names
+    print('\nHere are the current solution choices: \n')
+    print(tabulate(headers=header,tabular_data=table,tablefmt='fancy_grid'))
+
+    return 
