@@ -220,19 +220,19 @@ def plot_rkhs(noise,d,max_it,b_w=False):
 def plot_specific(noise,max_it,b_w):
     directory = 'bo/benchmark_results_specific'
     colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
-    human_behaviours = ['expert','adversarial','trusting',0.75,0.5,0.25]
+    human_behaviours = ['expert','trusting',0.75,0.5,0.25]
     
-    # functions = []
+    functions = []
 
-    # for i in [2,3,5]:
-    #     functions.append(Levi(i))
-    #     functions.append(Schewefel(i))
-    #     functions.append(Ackley(i))
-    #     functions.append(Griewank(i))
-    #     functions.append(Rastrigin(i))
-    #     functions.append(Rosenbrock(i))
+    for i in [2,3,5]:
+        functions.append(Levi(i))
+        functions.append(Schewefel(i))
+        functions.append(Ackley(i))
+        functions.append(Griewank(i))
+        functions.append(Rastrigin(i))
+        functions.append(Rosenbrock(i))
 
-    functions = [Ackley(3),Rosenbrock(2),Schewefel(3)]
+    # functions = [Ackley(3),Rosenbrock(2),Schewefel(3)]
 
     for function in functions:
         fig,axs = plt.subplots(1,2,figsize=(9,3))
@@ -317,8 +317,8 @@ def plot_real(max_it,b_w):
 # plot_human('EI',1)
 b_w = False
 for noise in [0.0,0.025,0.05]:
-    plot_rkhs(noise,1,1000,b_w)
-    plot_rkhs(noise,2,1000,b_w)
-    plot_rkhs(noise,3,1000,b_w)
-    # plot_specific(noise,30,b_w)
+    # plot_rkhs(noise,1,1000,b_w)
+    # plot_rkhs(noise,2,1000,b_w)
+    # plot_rkhs(noise,3,1000,b_w)
+    plot_specific(noise,10000,b_w)
 #plot_real(50,b_w)
