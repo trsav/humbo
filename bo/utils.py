@@ -362,8 +362,8 @@ def LETHAM(x,args):
     gp_list, f_best_list = args
     SUM = 0 
     for gp,f_best in zip(gp_list,f_best_list):
-        SUM += EI(x,(gp,f_best))
-    return SUM / len(gp_list)
+        SUM -= EI(x,(gp,f_best))
+    return -(SUM / len(gp_list))
 
 
 def delete_folders(problem_data):
