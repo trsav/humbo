@@ -61,8 +61,11 @@ def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc,noise):
                 results = directory+'/'+files[i] + '/res.json'
                 # open json
                 with open(results, "r") as f:
-                    data = json.load(f)
-                problem_data_list.append(data['problem_data'])
+                    try:
+                        data = json.load(f)
+                        problem_data_list.append(data['problem_data'])
+                    except:
+                        print('ERROR IN JSON')
 
         
     # create dataframe from list of dictionaries 
@@ -170,12 +173,12 @@ def format_plot(fig,axs,s_i):
     # add text in upper right of right plot with functon name
 
     lines, labels = axs[0].get_legend_handles_labels()
-    fig.legend(lines, labels, loc='lower center', bbox_to_anchor=(0.5, 0.875), ncol=6,frameon=False)
+    fig.legend(lines, labels, loc='lower center', bbox_to_anchor=(0.5, 0.825), ncol=6,frameon=False)
 
 
     #fig.suptitle(r'Regret expectation over 50 functions, $f \sim \mathcal{GP}(\mu \equiv 0, K_M (d,\nu = '+str(l)+'))$, '+str(problem_data['alternatives'])+' alternate choices, $\mathcal{U}(x)=$'+str(aq)+r', $x \in R^'+str(problem_data['dim'])+'$',fontsize=int(fs))
     fig.tight_layout()
-    fig.subplots_adjust(top = 0.875)
+    fig.subplots_adjust(top = 0.85)
     return fig,axs
 
 
@@ -218,17 +221,21 @@ def plot_specific(noise,max_it,b_w):
     directory = 'bo/benchmark_results_specific'
     colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
     human_behaviours = ['expert','adversarial','trusting',0.75,0.5,0.25]
+    
+    # functions = []
 
-    functions = [Branin(2)]
-    for i in [2,5,10]:
-        functions.append(Ackley(i))
-        functions.append(Griewank(i))
-        functions.append(StyblinskiTang(i))
-        functions.append(Rastrigin(i))
-        functions.append(Rosenbrock(i))
+    # for i in [2,3,5]:
+    #     functions.append(Levi(i))
+    #     functions.append(Schewefel(i))
+    #     functions.append(Ackley(i))
+    #     functions.append(Griewank(i))
+    #     functions.append(Rastrigin(i))
+    #     functions.append(Rosenbrock(i))
+
+    functions = [Ackley(3),Rosenbrock(2),Schewefel(3)]
 
     for function in functions:
-        fig,axs = plt.subplots(1,2,figsize=(9,2.5))
+        fig,axs = plt.subplots(1,2,figsize=(9,3))
         
         for i in range(len(human_behaviours)):
             # for this problem data
@@ -240,10 +247,7 @@ def plot_specific(noise,max_it,b_w):
 
             if b_w == False:
                 colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
-                try:
-                    s_i = plot_regret(problem_data,axs,colors[i],directory,max_it,b_w,unc=False,noise=noise_scaled)
-                except:
-                    pass
+                s_i = plot_regret(problem_data,axs,colors[i],directory,max_it,b_w,unc=False,noise=noise_scaled)
             if b_w == True:
                 lines = ['-','--','-.',':',(0,1,10),(0, (3, 5, 1, 5, 1, 5))]
                 try:
@@ -258,7 +262,9 @@ def plot_specific(noise,max_it,b_w):
         else:
             n = function.name[-1]
             func_name = function.name[:-1]
-        axs[1].text(0.95, 0.95, func_name + ': $d= $'+n, horizontalalignment='right',verticalalignment='top', transform=axs[1].transAxes,fontsize=12,bbox=dict(facecolor='white',edgecolor='none',pad=0.5))
+        #axs[0].text(0.95, 0.95,func_name + ': $d= $'+n+', $\epsilon \sim \mathcal{N}(0,$'+str(noise)+r'$)$', horizontalalignment='right',verticalalignment='top', transform=axs[0].transAxes,fontsize=12,bbox=dict(facecolor='white',edgecolor='none',pad=0.5))
+        # set title for both plots 
+        fig.suptitle(func_name + ': $d= $'+n+', $\epsilon \sim \mathcal{N}(0,$'+str(noise)+r'$)$',x=0.5,y=0.1)
 
         fig,axs = format_plot(fig,axs,s_i)
         plt.savefig('bo/plots/specific/'+function.name+'_noise_'+str(noise)+'.png',dpi=400)
@@ -310,9 +316,9 @@ def plot_real(max_it,b_w):
 
 # plot_human('EI',1)
 b_w = False
-for noise in [0.0,0.01,0.05]:
-    # plot_rkhs(noise,1,1000,b_w)
-    # plot_rkhs(noise,2,1000,b_w)
-    # plot_rkhs(noise,5,1000,b_w)
-    plot_specific(noise,1000,b_w)
+for noise in [0.0,0.025,0.05]:
+    plot_rkhs(noise,1,1000,b_w)
+    plot_rkhs(noise,2,1000,b_w)
+    plot_rkhs(noise,3,1000,b_w)
+    # plot_specific(noise,30,b_w)
 #plot_real(50,b_w)
