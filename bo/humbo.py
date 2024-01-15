@@ -16,6 +16,7 @@ import uuid
 from pymoo.termination.default import DefaultMultiObjectiveTermination
 from pymoo.optimize import minimize as minimize_mo
 from reccomender import * 
+from tabulate import tabulate
 
 def humbo(
     f,
@@ -30,19 +31,38 @@ def humbo(
     except FileExistsError:
         shutil.rmtree(path)
         os.mkdir(path)
-    
+
+
+    # create csv for initial data with header of f.x_names
+    pd.DataFrame(columns=f.x_names).to_excel(f.name+"_initial_data.xlsx",index=False)
+
+    print('The bounds of the problem are as follows: ')
+
+    x_bounds = f.bounds
     data_path = path + "/res.json"
     sample_initial = problem_data["sample_initial"]
     gp_ms = problem_data["gp_ms"]
 
+    print(tabulate(headers=f.x_names,tabular_data=np.array(x_bounds).T,tablefmt='fancy_grid'))
+
+    gp_ms = problem_data["gp_ms"]
 
 
-    x_bounds = f.bounds
-    lhs_key = 0 # key for deterministic initial sample for expectation over functions
-    jnp_samples = lhs(jnp.array(x_bounds), sample_initial,lhs_key)
-    samples = []
-    for i in range(sample_initial):
-        samples.append(list([float(s) for s in jnp_samples[i]]))
+    print('Edit the '+f.name+"_initial_data.xlsx"+' file with any initial solutions, ensure the solutions are within the stated bounds, then press any key.')
+    input()
+
+    # read in initial data
+    initial_data = pd.read_excel(f.name+"_initial_data.xlsx")
+    initial_data = initial_data.to_numpy()
+    if len(initial_data) == 0:
+        lhs_key = 0 # key for deterministic initial sample for expectation over functions
+        jnp_samples = lhs(jnp.array(x_bounds), sample_initial,lhs_key)
+        samples = []
+        for i in range(sample_initial):
+            samples.append(list([float(s) for s in jnp_samples[i]]))
+    else:
+        samples = distribute_solutions(initial_data,x_bounds,problem_data['sample_initial']-len(initial_data))
+        samples = list(samples) 
 
     data = {"data": []}
 
@@ -285,6 +305,7 @@ try:
 except FileExistsError:
     pass
 
+
 # def create_SelfOpt():
 #     f = SelfOpt(4)
 #     return f
@@ -295,7 +316,7 @@ def create_Reactor():
 
 
 problem_data = {}
-problem_data["sample_initial"] = 8
+problem_data["sample_initial"] = 12
 problem_data["gp_ms"] = 8
 problem_data["alternatives"] = 4
 problem_data["NSGA_xtol"] = 1e-6

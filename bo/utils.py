@@ -19,6 +19,7 @@ import json
 import time
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+import scipy.optimize as opt
 from jax.scipy.optimize import minimize
 from tensorflow_probability.substrates import jax as tfp
 import shutil 
@@ -245,6 +246,41 @@ def train_gp(inputs, outputs, ms,its=4000,noise=False):
 
     best_posterior = opt_posteriors[np.argmax(nlls)]
     return best_posterior, D
+
+def distribute_solutions(x_expert,bounds,required):
+
+    # min max normalise 
+    x_expert = (x_expert - bounds[:,0]) / (bounds[:,1] - bounds[:,0])
+
+    def k(x1,x2):
+        return np.exp(-np.sum((x1-x2)**2)/0.05)
+
+    def covar_mat(x):
+        n = len(x)
+        K = np.zeros((n,n))
+        for i in range(n):
+            for j in range(i,n):
+                K[i,j] = k(x[i],x[j])
+                K[j,i] = K[i,j]
+        return K
+
+    def obj(x_list,x_expert):
+        x_random = np.reshape(x_list,(required,len(bounds)))
+        x_aug = np.concatenate((x_random,x_expert),axis=0)
+        K = covar_mat(x_aug)
+        det = np.linalg.det(K)
+        return -det
+
+    x_list = np.random.uniform(size=(required*len(bounds)))
+
+    print('Running Nelder-Mead')
+    res = opt.minimize(obj,x_list,args=(x_expert),method='Nelder-Mead',bounds=[[0,1] for i in range(required*len(bounds))],options={'disp':True,'maxiter':10000})
+    x_opt = res.x
+    x_opt = np.reshape(x_opt,(required,len(bounds)))
+    x_opt = np.concatenate((x_opt,x_expert),axis=0)
+    x_opt = x_opt * (bounds[:,1] - bounds[:,0]) + bounds[:,0]
+    return x_opt
+
 
 
 def inference(gp, x_inputs):
