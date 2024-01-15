@@ -155,12 +155,17 @@ class Rosenbrock:
         return -f.item()
     
 class Levi:
+    '''
+    LaTeX: f(\mathbf{x}) = \sin^2(\pi w_1) + \sum_{i=1}^{d-1} \left[ (w_i - 1)^2 (1 + 10 \sin^2(\pi w_i + 1)) + (w_d - 1)^2 (1 + \sin^2(2 \pi w_d)) \right]
+    where w_i = 1 + \frac{x_i - 1}{4}
+    '''
 
     def __init__(self,d):
         self.name = "Levi" + str(d)
         self.bounds = jnp.array([[-10, 10]] * d)
         self.f_opt = 0
         self.f_max = 80
+        self.dim = d
     
     def __call__(self,x):
         d = len(x)
@@ -169,21 +174,21 @@ class Levi:
         f = jnp.sin(jnp.pi * w[0]) ** 2 + jnp.sum((w[:-1] - 1) ** 2 * (1 + 10 * jnp.sin(jnp.pi * w[:-1] + 1) ** 2)) + (w[-1] - 1) ** 2 * (1 + jnp.sin(2 * jnp.pi * w[-1]) ** 2)
         return -f.item()
 
-class Schewefel:
+class Schwefel:
     def __init__(self,d):
         self.name = "Schewefel" + str(d)
         self.bounds = jnp.array([[-500, 500]] * d)
         self.f_opt = 0
         self.f_max = 1600
+        self.dim = d
 
     def __call__(self,x):
         d = len(x)
         x = jnp.array(x)
         f = 418.9829 * d - jnp.sum(x * jnp.sin(jnp.sqrt(jnp.abs(x))))
         return -f.item()
+  
 
-
-    
 class StyblinskiTang:
     '''
     LaTeX: f(\mathbf{x}) = \frac{1}{2} \sum_{i=1}^d \left[ x_i^4 - 16 x_i^2 + 5 x_i \right] 

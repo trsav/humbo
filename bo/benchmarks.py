@@ -42,14 +42,14 @@ def specific_functions(array_index,b_index,noise_std):
     problem_data['time_created'] = str(datetime.datetime.now())
 
     f_store = []
+    f_store = []
     for i in [2,3,5]:
         f_store.append(Levi(i))
-        f_store.append(Schewefel(i))
+        f_store.append(Schwefel(i))
         f_store.append(Ackley(i))
         f_store.append(Griewank(i))
         f_store.append(Rastrigin(i))
         f_store.append(Rosenbrock(i))
-        # f_store.append(StyblinskiTang(i))
 
     repeats = 32
     f_key = array_index // repeats
@@ -97,18 +97,19 @@ def rkhs_functions(array_index, b_index,noise_std):
 
     human_behaviours = ['trusting','adversarial','expert',0.25,0.5,0.75]
     problem_data = {}
-    problem_data["sample_initial"] = 4
+    problem_data["sample_initial"] = 8
     problem_data["gp_ms"] = 8
     problem_data["alternatives"] = 4
-    problem_data["NSGA_xtol"] = 1e-5
-    problem_data["NSGA_ftol"] = 0.02
+    problem_data["NSGA_xtol"] = 1e-6
+    problem_data["NSGA_ftol"] = 0.01
+
     problem_data['deterministic_initial'] = 'true'
     problem_data['max_iterations'] = 60
     problem_data['time_created'] = str(datetime.datetime.now())
 
     f_keys = pd.read_csv('function_creation/f_keys.csv')['f_keys'].values
     f_count = len(f_keys)
-    d_store = [1,2,5]
+    d_store = [1,2,3,5]
 
     f_key = array_index // len(d_store)
     d_ind = array_index % len(d_store)
@@ -117,21 +118,21 @@ def rkhs_functions(array_index, b_index,noise_std):
 
     problem_data['human_behaviour'] = human_behaviours[b_index]
     key = random.PRNGKey(f_keys[f_key])
-    f = Function(create_problem(key,0.04,problem_data['dim']))
+    f = Function(create_problem(key,0.05,problem_data['dim']))
     problem_data['max_iterations'] = 60
     file = str(uuid.uuid4())
     if noise_std > 1e-8:
         aq = 'LETHAM'
         problem_data["noisy"] = True
         problem_data['noise'] = noise_std 
-        problem_data['max_iterations'] = problem_data['max_iterations'] * 2
+        problem_data['max_iterations'] = problem_data['max_iterations'] 
         problem_data['letham_gps'] = 8
         file += '_noisy_' + str(noise_std)
 
     else:
         problem_data["noisy"] = False
         problem_data['noise'] = 0.00
-        aq = 'UCB'
+        aq = 'EI'
 
     problem_data['acquisition_function'] = aq
 

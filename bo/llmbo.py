@@ -83,7 +83,6 @@ def llmbo(
 
         llm = Llama(model_path=problem_data['llm_location'],n_ctx=4096,n_gpu_layers=-1,n_threads=4)
     while len(data['data']) < problem_data['max_iterations']:
-        
             
         start_time = time.time()
         data = read_json(data_path)
@@ -129,9 +128,7 @@ def llmbo(
 
             util_args = (gp_list, f_best_list)
 
-
         aq = vmap(f_aq, in_axes=(0, None))
-
 
         if problem_data['plot'] == True:
             fig,ax = plt.subplots(2,1,figsize=(10,6),constrained_layout=True,sharex=True)
@@ -150,13 +147,13 @@ def llmbo(
                     ax[0].plot(x_plot,gp_m,c='k')
                     ax[0].fill_between(x_plot,gp_m - 2*gp_s,gp_m + 2*gp_s,color='k',lw=0,alpha=0.2)
 
-                v_EI = vmap(logEI, in_axes=(0, None))
+                v_EI = vmap(EI, in_axes=(0, None))
                 for gp in gp_list:
                     aq_plot = v_EI(x_plot_gp,(gp,f_best))
                     ax[1].plot(x_plot[:len(aq_plot)],-np.array(aq_plot),c='r',alpha=0.5)
 
                 aq_plot = aq(x_plot_gp,util_args)
-                ax[1].plot(x_plot[:len(aq_plot)],-np.array(aq_plot),c='k')
+                ax[1].plot(x_plot[:len(aq_plot)],np.array(aq_plot),c='k')
                 ax[1].set_yscale('symlog')
 
 
@@ -184,7 +181,7 @@ def llmbo(
         lower_bounds_single = jnp.array([b[0] for b in bounds])
 
         opt_bounds = (lower_bounds_single, upper_bounds_single)
-        s_init = jnp.array(sample_bounds(x_bounds, 256))
+        s_init = jnp.array(sample_bounds(bounds, 256))
         
         solver = bounded_solver(
             method="l-bfgs-b",
