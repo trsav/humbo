@@ -53,9 +53,12 @@ def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc,noise):
         if func_flag != True:
             results = directory+'/'+files[i] + '/res.json'
             # open json
-            with open(results, "r") as f:
-                data = json.load(f)
-            problem_data_list.append(data['problem_data'])
+            try:
+                with open(results, "r") as f:
+                    data = json.load(f)
+                problem_data_list.append(data['problem_data'])
+            except:
+                print('ERROR IN JSON')
         else:
             if '.' not in files[i] and func in files[i]:
                 results = directory+'/'+files[i] + '/res.json'
@@ -67,7 +70,6 @@ def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc,noise):
                     except:
                         print('ERROR IN JSON')
 
-        
     # create dataframe from list of dictionaries 
     df = pd.DataFrame(problem_data_list)
     if noise > 0:
@@ -77,7 +79,7 @@ def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc,noise):
     else:
         df = df.loc[(df['human_behaviour'] == problem_data['human_behaviour']) & (df['function'] == problem_data['function']) & (np.abs(df['noise'] - noise) < 1e-8)]
 
-
+    print(len(df))
     label = problem_data['human_behaviour']
     file_names = df['file_name'].values
     regret_list, obj_list, f_opt_list = [], [], []
@@ -185,6 +187,7 @@ def format_plot(fig,axs,s_i):
 def plot_rkhs(noise,d,max_it,b_w=False):
     directory = 'bo/benchmark_results_rkhs'
     human_behaviours = ['expert','adversarial','trusting',0.75,0.5,0.25]
+    
 
     fig,axs = plt.subplots(1,2,figsize=(9,2.5))
 
@@ -199,14 +202,15 @@ def plot_rkhs(noise,d,max_it,b_w=False):
         if b_w == False:
             colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
             try:
-                s_i = plot_regret(problem_data,axs,colors[i],directory,max_it,b_w,unc=True,noise=noise)
+                # s_i = plot_regret(problem_data,axs,colors[i],directory,max_it,b_w,unc=True,noise=noise)
+                s_i = plot_regret(problem_data,axs,colors[i],directory,max_it,b_w,unc=False,noise=noise)
                 plt.savefig('bo/plots/rkhs/d_'+str(d)+'_noise_'+str(noise)+'.pdf')
             except:
                 pass
         if b_w == True:
             lines = ['-','--','-.',':',(0,1,10),(0, (3, 5, 1, 5, 1, 5))]
             try:
-                s_i = plot_regret(problem_data,axs,lines[i],directory,max_it,b_w,unc=True,noise=noise)
+                s_i = plot_regret(problem_data,axs,lines[i],directory,max_it,b_w,unc=False,noise=noise)
                 plt.savefig('bo/plots/rkhs/d_'+str(d)+'_noise_'+str(noise)+'.pdf')
             except:
                 pass
@@ -220,13 +224,13 @@ def plot_rkhs(noise,d,max_it,b_w=False):
 def plot_specific(noise,max_it,b_w):
     directory = 'bo/benchmark_results_specific'
     colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
-    human_behaviours = ['expert','trusting',0.75,0.5,0.25]
+    human_behaviours = ['expert','adversarial','trusting',0.75,0.5,0.25]
     
     functions = []
 
     for i in [2,3,5]:
         functions.append(Levi(i))
-        functions.append(Schewefel(i))
+        functions.append(Schwefel(i))
         functions.append(Ackley(i))
         functions.append(Griewank(i))
         functions.append(Rastrigin(i))
@@ -311,14 +315,12 @@ def plot_real(max_it,b_w):
         plt.savefig('bo/plots/overall_regret_'+function+'.pdf')
 
 
-
-
-
 # plot_human('EI',1)
 b_w = False
 for noise in [0.0,0.025,0.05]:
-    # plot_rkhs(noise,1,1000,b_w)
-    # plot_rkhs(noise,2,1000,b_w)
-    # plot_rkhs(noise,3,1000,b_w)
+    plot_rkhs(noise,1,1000,b_w)
+    plot_rkhs(noise,2,1000,b_w)
+    plot_rkhs(noise,3,1000,b_w)
+    plot_rkhs(noise,5,1000,b_w)
     plot_specific(noise,10000,b_w)
 #plot_real(50,b_w)

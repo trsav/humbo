@@ -213,8 +213,12 @@ def llmbo(
         else:
 
             n_opt = int(len(bounds) * (alternatives-1))
-            upper_bounds = jnp.repeat(upper_bounds_single, alternatives-1)
-            lower_bounds = jnp.repeat(lower_bounds_single, alternatives-1)
+            # upper_bounds = jnp.repeat(upper_bounds_single, alternatives-1)
+            # lower_bounds = jnp.repeat(lower_bounds_single, alternatives-1)
+
+            mo_upper_bounds = jnp.array([b[1] for b in bounds] * (alternatives-1))
+            mo_lower_bounds = jnp.array([b[0] for b in bounds] * (alternatives-1))
+
             termination = DefaultMultiObjectiveTermination(
             xtol=problem_data['NSGA_xtol'],
             ftol=problem_data['NSGA_ftol'],
@@ -238,8 +242,8 @@ def llmbo(
                         n_var=n_opt,
                         n_obj=2,
                         n_ieq_constr=0,
-                        xl=np.array(lower_bounds),
-                        xu=np.array(upper_bounds),
+                        xl=np.array(mo_lower_bounds),
+                        xu=np.array(mo_upper_bounds),
                     )
 
                 def _evaluate(self, x, out, *args, **kwargs):

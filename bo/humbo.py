@@ -31,6 +31,11 @@ def humbo(
     except FileExistsError:
         shutil.rmtree(path)
         os.mkdir(path)
+    try:
+        os.mkdir(path + '/result_plots')
+    except FileExistsError:
+        shutil.rmtree(path)
+        os.mkdir(path + '/result_plots')
 
 
     # create csv for initial data with header of f.x_names
@@ -55,7 +60,8 @@ def humbo(
     initial_data = initial_data.to_numpy()
     if len(initial_data) == 0:
         lhs_key = 0 # key for deterministic initial sample for expectation over functions
-        jnp_samples = lhs(jnp.array(x_bounds), sample_initial,lhs_key)
+        # jnp_samples = lhs(jnp.array(x_bounds), sample_initial,lhs_key)
+        jnp_samples = np.random.uniform(low=0,high=1,size=(sample_initial,len(x_bounds))) * (np.array(x_bounds)[:,1] - np.array(x_bounds)[:,0]) + np.array(x_bounds)[:,0]
         samples = []
         for i in range(sample_initial):
             samples.append(list([float(s) for s in jnp_samples[i]]))
@@ -67,14 +73,19 @@ def humbo(
 
     for sample in samples:
         res = f(sample)
+
         run_info = {
             "id": str(uuid.uuid4()),
             "inputs": list(sample),
             "objective": res + np.random.normal(0,problem_data['noise'])
         }
 
-        data["data"].append(run_info)
+        try:
+            f.plot_result(sample,path + '/result_plots/' +run_info['id']+'.png',f)
+        except:
+            print('Plotting of result not implemented for this function...')
 
+        data["data"].append(run_info)
 
     save_json(data, data_path)
 
@@ -170,8 +181,14 @@ def humbo(
         x_opt_aq = xs[jnp.argmin(jnp.array(aq_vals))]
 
         n_opt = int(len(bounds) * (alternatives-1))
-        upper_bounds = jnp.repeat(upper_bounds_single, alternatives-1)
-        lower_bounds = jnp.repeat(lower_bounds_single, alternatives-1)
+        # mo_upper_bounds = jnp.repeat(upper_bounds_single, alternatives-1)
+        # mo_lower_bounds = jnp.repeat(lower_bounds_single, alternatives-1)
+
+        mo_upper_bounds = jnp.array([b[1] for b in bounds] * (alternatives-1))
+        mo_lower_bounds = jnp.array([b[0] for b in bounds] * (alternatives-1))
+        print(lower_bounds_single,upper_bounds_single,'\n')
+        print(mo_lower_bounds,mo_upper_bounds)
+
         termination = DefaultMultiObjectiveTermination(
         xtol=problem_data['NSGA_xtol'],
         ftol=problem_data['NSGA_ftol'],
@@ -186,6 +203,7 @@ def humbo(
             crossover=SBX(prob=0.9, eta=15),
             mutation=PM(eta=20),
             eliminate_duplicates=True,
+
         )
 
 
@@ -195,8 +213,8 @@ def humbo(
                     n_var=n_opt,
                     n_obj=2,
                     n_ieq_constr=0,
-                    xl=np.array(lower_bounds),
-                    xu=np.array(upper_bounds),
+                    xl=np.array(mo_lower_bounds),
+                    xu=np.array(mo_upper_bounds),
                 )
 
             def _evaluate(self, x, out, *args, **kwargs):
@@ -275,7 +293,7 @@ def humbo(
             os.mkdir(path + '/choices')
 
         for i in range(len(x_alternates)):
-            f.plot_solution(x_alternates[i],path + '/choices/choice_'+str(i+1)+'.png')
+            f.plot_solution(x_alternates[i],path + '/choices/choice_'+str(i+1)+'.png',f)
 
         create_human_prompt(f,x_names,x_alternates,aq_list,prompt_data,mean_alt,var_alt)
 
@@ -297,6 +315,10 @@ def humbo(
 
         run_info["objective"] = f_eval + np.random.normal(0,problem_data['noise'])
         run_info["id"] = str(uuid.uuid4())
+        try:
+            f.plot_result(sample,path + '/result_plots/' +run_info['id']+'.png',f)
+        except:
+            print('Plotting of result not implemented for this function...')
 
         
         regret = min((f.f_opt - f_eval),data['data'][-1]['regret'])
@@ -309,7 +331,11 @@ def humbo(
 
         save_json(data, data_path)
 
-res_path = 'bo/test_results/'
+
+name = input('Enter name and press Enter: ').lower()
+
+res_path = 'bo/'+name + '/'
+
 try:
     os.mkdir(res_path)
 except FileExistsError:
@@ -320,9 +346,6 @@ except FileExistsError:
 #     f = SelfOpt(4)
 #     return f
 
-def create_Reactor():
-    f = Reactor(1)
-    return f
 
 
 problem_data = {}
@@ -332,8 +355,13 @@ problem_data["alternatives"] = 4
 problem_data["NSGA_xtol"] = 1e-6
 problem_data["NSGA_ftol"] = 0.01
 problem_data['max_iterations'] = 60
-f = create_Reactor()
+
+
+#f = Reactor(1)
+f = BioProcess_Profile(4)
+
 problem_data['x_names'] = f.x_names
+problem_data['UTC'] = str(datetime.datetime.now())
 problem_data['expertise'] = f.expertise
 problem_data['objective_description'] = f.objective_description
 problem_data['function'] = f.name

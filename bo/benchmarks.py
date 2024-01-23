@@ -18,7 +18,7 @@ import gc
 import resource
 import argparse
 
-aqs = {'logEI':logEI,'UCB':UCB,'NOISY_EI':noisy_EI,'LETHAM':LETHAM,'EI':EI}
+aqs = {'logEI':logEI,'UCB':UCB,'NOISY_EI':noisy_EI,'LETHAM_EI':LETHAM_EI,'EI':EI,'LETHAM_UCB':UCB}
 
 def specific_functions(array_index,b_index,noise_std):
 
@@ -37,7 +37,7 @@ def specific_functions(array_index,b_index,noise_std):
     problem_data["gp_ms"] = 8
     problem_data["alternatives"] = 4
     problem_data["NSGA_xtol"] = 1e-6
-    problem_data["NSGA_ftol"] = 0.01
+    problem_data["NSGA_ftol"] = 0.005
 
     problem_data['time_created'] = str(datetime.datetime.now())
 
@@ -57,34 +57,37 @@ def specific_functions(array_index,b_index,noise_std):
 
     f = f_store[f_key]
 
-    problem_data['max_iterations'] = 60
-    if noise_std > 1e-8:
-        problem_data["noisy"] = True
-        problem_data['noise'] = noise_std * jnp.abs(f.f_max - f.f_opt).item()
-        print(problem_data['noise'])
-        problem_data['acquisition_function'] = 'LETHAM'
-        problem_data['letham_gps'] = 8
-        problem_data['max_iterations'] = problem_data['max_iterations']
+    problem_data['max_iterations'] = 48
 
-    else:
-        problem_data["noisy"] = False
-        problem_data['noise'] = 0.0
-        problem_data['acquisition_function'] = 'EI'
+    for aq_name in ['EI','UCB']:
+
+        if noise_std > 1e-8:
+            problem_data["noisy"] = True
+            problem_data['noise'] = noise_std * jnp.abs(f.f_max - f.f_opt).item()
+            print(problem_data['noise'])
+            problem_data['acquisition_function'] = 'LETHAM_' + aq_name
+            problem_data['letham_gps'] = 8
+            problem_data['max_iterations'] = problem_data['max_iterations']
+
+        else:
+            problem_data["noisy"] = False
+            problem_data['noise'] = 0.0
+            problem_data['acquisition_function'] = aq_name
 
 
-    file = f.name + '_' + str(uuid.uuid4())
-    path = res_path + file + "/"
-    problem_data['file_name'] = path
-    problem_data['plot'] = False
-    problem_data['dim'] = f.dim
-    problem_data['function'] = f.name
-    problem_data['human_behaviour'] = human_behaviours[b_index]
+        file = f.name + '_' + str(uuid.uuid4())
+        path = res_path + file + "/"
+        problem_data['file_name'] = path
+        problem_data['plot'] = False
+        problem_data['dim'] = f.dim
+        problem_data['function'] = f.name
+        problem_data['human_behaviour'] = human_behaviours[b_index]
 
-    llmbo(
-        f,
-        aqs[problem_data['acquisition_function']],
-        problem_data
-    )
+        llmbo(
+            f,
+            aqs[problem_data['acquisition_function']],
+            problem_data
+        )
 
 #specific_functions()
 
@@ -101,10 +104,10 @@ def rkhs_functions(array_index, b_index,noise_std):
     problem_data["gp_ms"] = 8
     problem_data["alternatives"] = 4
     problem_data["NSGA_xtol"] = 1e-6
-    problem_data["NSGA_ftol"] = 0.01
+    problem_data["NSGA_ftol"] = 0.005
 
     problem_data['deterministic_initial'] = 'true'
-    problem_data['max_iterations'] = 60
+    problem_data['max_iterations'] = 48
     problem_data['time_created'] = str(datetime.datetime.now())
 
     f_keys = pd.read_csv('function_creation/f_keys.csv')['f_keys'].values
@@ -119,33 +122,38 @@ def rkhs_functions(array_index, b_index,noise_std):
     problem_data['human_behaviour'] = human_behaviours[b_index]
     key = random.PRNGKey(f_keys[f_key])
     f = Function(create_problem(key,0.05,problem_data['dim']))
-    problem_data['max_iterations'] = 60
-    file = str(uuid.uuid4())
-    if noise_std > 1e-8:
-        aq = 'LETHAM'
-        problem_data["noisy"] = True
-        problem_data['noise'] = noise_std 
-        problem_data['max_iterations'] = problem_data['max_iterations'] 
-        problem_data['letham_gps'] = 8
-        file += '_noisy_' + str(noise_std)
 
-    else:
-        problem_data["noisy"] = False
-        problem_data['noise'] = 0.00
-        aq = 'EI'
 
-    problem_data['acquisition_function'] = aq
+    for aq_name in ['EI','UCB']:
 
-    path = res_path + file + "/"
-    problem_data['file_name'] = path
-    problem_data['plot'] = False
-    problem_data['function'] = file
+        file = str(uuid.uuid4())
 
-    llmbo(
-        f,
-        aqs[aq],
-        problem_data
-    )
+        if noise_std > 1e-8:
+            aq = 'LETHAM_' + aq_name
+            problem_data["noisy"] = True
+            problem_data['noise'] = noise_std 
+            problem_data['max_iterations'] = problem_data['max_iterations'] 
+            problem_data['letham_gps'] = 8
+            file += '_noisy_' + str(noise_std) + '_' + aq_name
+
+        else:
+            problem_data["noisy"] = False
+            problem_data['noise'] = 0.00
+            aq = aq_name
+            file += '_' + aq_name
+
+        problem_data['acquisition_function'] = aq
+
+        path = res_path + file + "/"
+        problem_data['file_name'] = path
+        problem_data['plot'] = False
+        problem_data['function'] = file
+
+        llmbo(
+            f,
+            aqs[aq],
+            problem_data
+        )
 
 # rkhs_functions()
 
@@ -254,7 +262,7 @@ if __name__ == "__main__":
     try:
         args = parser.parse_args()
     except:
-        rkhs_functions(0,0,0.05)
+        rkhs_functions(4,4,0.05)
         # real_functions(2,0,0.1)
         # specific_functions(0,0,0.1)
     

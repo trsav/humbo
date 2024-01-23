@@ -398,15 +398,21 @@ def UCB(x, args):
     gp, f_best = args
     m, K = inference(gp, jnp.array([x]))
     sigma = jnp.sqrt(K)
-    return -(m + 3*sigma)[0]
+    return -(m + 2.5*sigma)[0]
 
-def LETHAM(x,args):
+def LETHAM_EI(x,args):
     gp_list, f_best_list = args
     SUM = 0 
     for gp,f_best in zip(gp_list,f_best_list):
         SUM -= EI(x,(gp,f_best))
     return -(SUM / len(gp_list))
 
+def LETHAM_UCB(x,args):
+    gp_list, f_best_list = args
+    SUM = 0 
+    for gp,f_best in zip(gp_list,f_best_list):
+        SUM -= UCB(x,(gp,f_best))
+    return -(SUM / len(gp_list))
 
 def delete_folders(problem_data):
     directory = 'bo/benchmark_llmbo_results'

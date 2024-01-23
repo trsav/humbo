@@ -159,7 +159,7 @@ def create_human_prompt(f,x_names,x,u,data,mean,var):
         table.append(table_row)
     table = np.array(table)
 
-    header = ['Choice','Utility','Solution Mean','Solution Standard Deviation'] + x_names
+    header = ['Choice','Utility','Sol Mean','Sol STD'] + x_names
     print('\nHere are the current solution choices: \n')
     print(tabulate(headers=header,tabular_data=table,tablefmt='fancy_grid'))
 
