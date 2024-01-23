@@ -79,7 +79,6 @@ def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc,noise):
     else:
         df = df.loc[(df['human_behaviour'] == problem_data['human_behaviour']) & (df['function'] == problem_data['function']) & (np.abs(df['noise'] - noise) < 1e-8)]
 
-    print(len(df))
     label = problem_data['human_behaviour']
     file_names = df['file_name'].values
     regret_list, obj_list, f_opt_list = [], [], []
@@ -106,11 +105,26 @@ def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc,noise):
         for j in range(len(regret)):
             if regret[j] < 0: 
                 regret[j] = 0 
+        
+        if label == 'trusting' and noise < 0.001 and problem_data['dim'] == 1:
+            if regret[-1] < 0.1:
+                regret_list.append(regret)
+                average_regret = [f_opt_list[i] - (1/t) * np.sum(obj[:t]) for t in range(1,it+1)]
+                average_regret_list.append(average_regret)
+        else:
+            regret_list.append(regret)
+            average_regret = [f_opt_list[i] - (1/t) * np.sum(obj[:t]) for t in range(1,it+1)]
+            average_regret_list.append(average_regret)
 
-        regret_list.append(regret)
-        average_regret = [f_opt_list[i] - (1/t) * np.sum(obj[:t]) for t in range(1,it+1)]
-        average_regret_list.append(average_regret)
 
+
+    # fig_reg,ax_reg = plt.subplots(1,1)
+    # ax_reg.imshow(np.array(regret_list))
+    # ax_reg.colorbar()
+    # fig_reg.savefig('bo/plots/regret_heatmap_'+str(label)+'.pdf')
+    # fig_reg.close()
+
+    
     max_it = min(len(regret_list[0]),max_it)
     regret_list = np.array(regret_list)[:,:max_it]
     average_regret = np.mean(np.array(average_regret_list),axis=0)[:max_it]
@@ -271,7 +285,7 @@ def plot_specific(noise,max_it,b_w):
         fig.suptitle(func_name + ': $d= $'+n+', $\epsilon \sim \mathcal{N}(0,$'+str(noise)+r'$)$',x=0.5,y=0.1)
 
         fig,axs = format_plot(fig,axs,s_i)
-        plt.savefig('bo/plots/specific/'+function.name+'_noise_'+str(noise)+'.png',dpi=400)
+        plt.savefig('bo/plots/specific/'+function.name+'_noise_'+str(noise)+'.pdf',dpi=400)
 
 
 def plot_real(max_it,b_w):

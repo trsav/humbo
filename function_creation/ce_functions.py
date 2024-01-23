@@ -108,8 +108,8 @@ class Reactor(GeneralObjective):
         a, f, re, pitch, coil_rad = x
         v = (re * 9.9 * 10**-4) / (990 * 0.005)
 
-        fig = plt.figure(figsize=(9, 4))
-        gs = gridspec.GridSpec(1, 2, width_ratios=[2, 1]) 
+        fig = plt.figure(figsize=(9, 3))
+        gs = gridspec.GridSpec(1, 2, width_ratios=[1, 1.5]) 
         ax = fig.add_subplot(gs[0])
         x = np.linspace(0, 1, 300)
         y = np.sin(2 * np.pi * f * x) * a + v
@@ -118,8 +118,9 @@ class Reactor(GeneralObjective):
         ax.set_ylabel('Inlet Velocity (m/s)')
         ax.set_xlim([0,1])
         ax.set_ylim([-0.01,0.02])
-        ax.spines['right'].set_visible(False)
-        ax.spines['top'].set_visible(False)
+        ax.set_title('Operating Conditions')
+        # ax.spines['right'].set_visible(False)
+        # ax.spines['top'].set_visible(False)
         
         n = 100
         l = 0.0875
@@ -133,17 +134,30 @@ class Reactor(GeneralObjective):
         x = theta * np.cos(rho)
         y = theta * np.sin(rho)
         z = z
+        ax.grid(alpha=0.5)
 
-        ax = fig.add_subplot(gs[1], projection='3d')
+        ax = fig.add_subplot(gs[1])
         ax.set_aspect('equal')
         ax.set_xlim([-0.02,0.02])
-        ax.set_ylim([-0.02,0.02])
-        ax.set_zlim([0,0.02])
-        a_l = np.linspace(0,1,5)
-        for i in range(5):
-            a = a_l[i]
-            ax.plot(x,y,z,lw=a*10,alpha=(1-a),color='black')
+        ax.set_ylim([0,0.02])
+
+        #turn off everything that isn\t needed like ticks etc...
+        # ax.set_yticks([])
+        ax.set_ylabel('h')
+        ax.set_xlabel('x')
+        
+        ax.set_yticks([0,0.005,0.01,0.015,0.02])
+        ax.set_xticks([0.02,0.01,0.0,-0.01,-0.02])
+        ax.grid(alpha=0.5)
+
+        # remove grey background 
+        ax.set_title('Reactor Geometry')
+    
+        ax.plot(x,z,lw=3,alpha=0.8,color='black')
+        ax.plot(x,z,lw=20,alpha=0.3,color='black')
         fig.tight_layout()
+        # fig.subplots_adjust(wspace=0.01,top=0.9,bottom=0.3)
+        # fig.show()
         fig.savefig(path_name)
 
 
@@ -208,7 +222,6 @@ class BioProcess:
         plt.savefig(path_name)
 
 # f = BioProcess()
-        
 
 class BioProcess_Profile:
     def __init__(self,n_control):
@@ -316,8 +329,11 @@ class BioProcess_Profile:
         for ax_ in ax:
             ax_.set_xlabel('Time (hr)')
         ax[3].plot(t_appended,I_store_appended,c='k')
+        ax[3].fill_between(t_appended,0,I_store_appended,color='k',alpha=0.5)
+
         ax[3].set_ylabel('Light Intensity')
         ax[4].plot(t_appended,FCn_store_appended,c='k')
+        ax[4].fill_between(t_appended,0,FCn_store_appended,color='k',alpha=0.5)
         ax[4].set_ylabel('Nitrogen Feed Rate')
 
         ax[0].set_ylim([0,0.05])
@@ -385,9 +401,12 @@ class BioProcess_Profile:
         plt.close()
 
 
-# n_control = 32
-# f = BioProcess_Profile(n_control)
-# x = np.linspace(400,100,n_control)
-# x = np.append(x,np.linspace(40,0,n_control))
-# f.plot_solution(x,'test.png',f)
-# f.plot_result(x,'test_2.png',f)
+# f = Reactor(1)
+# f.plot_solution([0.006,5,30,0.01,0.01],'reac_example.pdf')
+
+n_control = 8
+f = BioProcess_Profile(n_control)
+x = np.linspace(400,0,n_control)
+x = np.append(x,np.linspace(40,0,n_control))
+# f.plot_solution(x,'test.pdf',f)
+f.plot_result(x,'bioproc_example.pdf',f)
