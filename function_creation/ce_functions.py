@@ -329,11 +329,11 @@ class BioProcess_Profile:
         for ax_ in ax:
             ax_.set_xlabel('Time (hr)')
         ax[3].plot(t_appended,I_store_appended,c='k')
-        ax[3].fill_between(t_appended,0,I_store_appended,color='k',alpha=0.5)
+        ax[3].fill_between(t_appended,0,I_store_appended,color='gray')
 
         ax[3].set_ylabel('Light Intensity')
         ax[4].plot(t_appended,FCn_store_appended,c='k')
-        ax[4].fill_between(t_appended,0,FCn_store_appended,color='k',alpha=0.5)
+        ax[4].fill_between(t_appended,0,FCn_store_appended,color='gray')
         ax[4].set_ylabel('Nitrogen Feed Rate')
 
         ax[0].set_ylim([0,0.05])
@@ -341,6 +341,9 @@ class BioProcess_Profile:
         ax[2].set_ylim([0,2000])
         ax[3].set_ylim([0,450])
         ax[4].set_ylim([0,45])
+
+        for ax_ in ax:
+            ax_.grid(alpha=0.5,zorder=0)
 
         plt.tight_layout()
 
@@ -404,9 +407,9 @@ class BioProcess_Profile:
 # f = Reactor(1)
 # f.plot_solution([0.006,5,30,0.01,0.01],'reac_example.pdf')
 
-n_control = 8
-f = BioProcess_Profile(n_control)
-x = np.linspace(400,0,n_control)
-x = np.append(x,np.linspace(40,0,n_control))
-# f.plot_solution(x,'test.pdf',f)
-f.plot_result(x,'bioproc_example.pdf',f)
+# n_control = 8
+# f = BioProcess_Profile(n_control)
+# x = np.linspace(400,0,n_control)
+# x = np.append(x,np.linspace(40,0,n_control))
+# # f.plot_solution(x,'test.pdf',f)
+# f.plot_result(x,'bioproc_example.pdf',f)

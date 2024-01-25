@@ -14,15 +14,29 @@ import uuid
 from pymoo.termination.default import DefaultMultiObjectiveTermination
 from pymoo.optimize import minimize as minimize_mo
 from reccomender import * 
+aqs = {'logEI':logEI,'UCB':UCB,'NOISY_EI':noisy_EI,'LETHAM_EI':LETHAM_EI,'EI':EI,'LETHAM_UCB':LETHAM_UCB}
 
 def llmbo(
     f,
     f_aq,
     problem_data,
 ):
+
+
+    try:
+        file_name = problem_data['file_name']
+    except:
+        try:
+            os.mkdir('bo/'+f.name)
+        except FileExistsError:
+            pass
+
+        problem_data['file_name'] = 'bo/'+f.name+'/'+str(uuid.uuid4())
+
     path = problem_data["file_name"]
 
-
+    if f_aq.__class__ == str:
+        f_aq = aqs[f_aq]
 
     try:
         os.mkdir(path)

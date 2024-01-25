@@ -367,7 +367,7 @@ problem_data['objective_description'] = f.objective_description
 problem_data['function'] = f.name
 problem_data['dim'] = f.dim
 
-aq = 'LETHAM'
+aq = 'LETHAM_UCB'
 problem_data["noisy"] = True
 noise_std = 0.025
 problem_data['noise'] = noise_std * f.y_range
@@ -386,7 +386,7 @@ file = f.name
 path = res_path + file + "/"
 problem_data['file_name'] = path
 
-aqs = {'LETHAM':LETHAM,'UCB':UCB,'EI':EI}   
+aqs = {'LETHAM_UCB':LETHAM_UCB,'UCB':UCB,'EI':EI}   
 
 humbo(
     f,
