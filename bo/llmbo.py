@@ -31,7 +31,7 @@ def llmbo(
         except FileExistsError:
             pass
 
-        problem_data['file_name'] = 'bo/'+f.name+'/'+str(uuid.uuid4())
+        problem_data['file_name'] = 'bo/'+f.name+'/'+str(f.name)+'_'+str(uuid.uuid4())
 
     path = problem_data["file_name"]
 

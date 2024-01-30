@@ -28,6 +28,7 @@ import matplotlib as mpl
 import sys
 sys.path.insert(1, os.path.join(sys.path[0], ".."))
 from function_creation.function import *
+from function_creation.ce_functions import * 
 
 from pathlib import Path
 
@@ -50,7 +51,19 @@ def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc,noise):
     files = os.listdir(directory)
     problem_data_list = []
     for i in tqdm(range(len(files))):
-        if func_flag != True:
+
+        if func == 'bioprocess_profile':
+
+            results = directory+'/'+files[i] + '/res.json'
+            # open json
+            with open(results, "r") as f:
+                try:
+                    data = json.load(f)
+                    problem_data_list.append(data['problem_data'])
+                except:
+                    print('ERROR IN JSON')
+
+        elif func_flag != True:
             results = directory+'/'+files[i] + '/res.json'
             # open json
             try:
@@ -72,18 +85,26 @@ def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc,noise):
 
     # create dataframe from list of dictionaries 
     df = pd.DataFrame(problem_data_list)
-    if noise > 0:
-        print('here')
-    if func_flag == False:
+
+    if noise == None:
+        df = df.loc[(df['human_behaviour'] == problem_data['human_behaviour'])]
+    elif func_flag == False:
         df = df.loc[(df['human_behaviour'] == problem_data['human_behaviour']) & (df['dim'] == problem_data['dim']) & (np.abs(df['noise'] - noise) < 1e-8)]
     else:
         df = df.loc[(df['human_behaviour'] == problem_data['human_behaviour']) & (df['function'] == problem_data['function']) & (np.abs(df['noise'] - noise) < 1e-8)]
 
+    aq_bool_mask = [problem_data['aq'] in df_item for df_item in df['acquisition_function']]
+    df = df.loc[aq_bool_mask]
+
+
+    print(df)
     label = problem_data['human_behaviour']
     file_names = df['file_name'].values
     regret_list, obj_list, f_opt_list = [], [], []
     for file in file_names:
-        file = directory + '/' + file.split('/')[-2]
+        if func != 'bioprocess_profile':
+            file = directory + '/' + file.split('/')[-2]
+
         data_full = read_json(file+'/res.json')
         data = data_full['data']
         f_opt = data_full['problem_data']['f_opt']
@@ -102,19 +123,20 @@ def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc,noise):
 
         it = len(obj)
         regret = [f_opt_list[i] - np.max(obj[:t]) for t in range(1,it+1)]
-        for j in range(len(regret)):
-            if regret[j] < 0: 
-                regret[j] = 0 
+        if func != 'bioprocess_profile':
+            for j in range(len(regret)):
+                if regret[j] < 0: 
+                    regret[j] = 0 
         
-        if label == 'trusting' and noise < 0.001 and problem_data['dim'] == 1:
-            if regret[-1] < 0.1:
-                regret_list.append(regret)
-                average_regret = [f_opt_list[i] - (1/t) * np.sum(obj[:t]) for t in range(1,it+1)]
-                average_regret_list.append(average_regret)
-        else:
-            regret_list.append(regret)
-            average_regret = [f_opt_list[i] - (1/t) * np.sum(obj[:t]) for t in range(1,it+1)]
-            average_regret_list.append(average_regret)
+        # if label == 'trusting' and noise < 0.001 and problem_data['dim'] == 1:
+        #     if regret[-1] < 0.1:
+        #         regret_list.append(regret)
+        #         average_regret = [f_opt_list[i] - (1/t) * np.sum(obj[:t]) for t in range(1,it+1)]
+        #         average_regret_list.append(average_regret)
+        # else:
+        regret_list.append(regret)
+        average_regret = [f_opt_list[i] - (1/t) * np.sum(obj[:t]) for t in range(1,it+1)]
+        average_regret_list.append(average_regret)
 
 
 
@@ -124,11 +146,22 @@ def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc,noise):
     # fig_reg.savefig('bo/plots/regret_heatmap_'+str(label)+'.pdf')
     # fig_reg.close()
 
-    
     max_it = min(len(regret_list[0]),max_it)
     regret_list = np.array(regret_list)[:,:max_it]
     average_regret = np.mean(np.array(average_regret_list),axis=0)[:max_it]
     average_regret_std = np.std(np.array(average_regret_list),axis=0)[:max_it]
+
+    if func == 'bioprocess_profile':
+
+        # make regret positive (turn into a reward)
+
+        new_regret_list = []
+        for regret in regret_list:
+            new_regret_list.append(list(-np.array(regret)))
+        regret_list = new_regret_list
+
+        # same with average regret
+        average_regret = -average_regret
 
     if label.__class__ != float:
         label = label[0].upper() + label[1:]
@@ -163,7 +196,8 @@ def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc,noise):
         else:
             ax.plot(x,mean_instantaneous_regret[init:],c='k',lw=1.5,ls=c,label=label)
         lower = mean_instantaneous_regret[init:]-std_instantaneous_regret[init:]
-        lower[lower<10e-4] = 10e-4
+        if func != 'bioprocess_profile':
+            lower[lower<10e-4] = 10e-4
         upper = mean_instantaneous_regret[init:]+std_instantaneous_regret[init:]
         if b_w != True and unc == True:
             ax.fill_between(x,lower,upper,alpha=0.1,color=c,lw=0)
@@ -172,9 +206,8 @@ def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc,noise):
     return problem_data['sample_initial']
 
 
-def format_plot(fig,axs,s_i):
+def format_plot(fig,axs,s_i,type='Benchmark'):
     fs = 12
-    axs[0].set_ylabel(r"Simple Regret, $r_\tau$",fontsize=fs,font=fpath)
     for ax in axs:
         ax.grid(True,alpha=0.5)
         x_start = s_i
@@ -184,8 +217,14 @@ def format_plot(fig,axs,s_i):
     
     axs[0].set_xlabel(r"Iterations, $\tau$",fontsize=fs,font=fpath)
     axs[1].set_xlabel(r"Iterations, $\tau$",fontsize=fs,font=fpath)
-    axs[1].set_ylabel(r"Average Regret, ${R_\tau}/{\tau}$",fontsize=fs,font=fpath)
-    axs[0].set_yscale('log')
+    if type == 'Benchmark':
+        axs[0].set_ylabel(r"Simple Regret, $r_\tau$",fontsize=fs,font=fpath)
+        axs[1].set_ylabel(r"Average Regret, ${R_\tau}/{\tau}$",fontsize=fs,font=fpath)
+        axs[0].set_yscale('log')
+    else:
+        axs[0].set_ylabel(r"Simple Reward, $r_\tau$",fontsize=fs,font=fpath)
+        axs[1].set_ylabel(r"Average Reward, ${R_\tau}/{\tau}$",fontsize=fs,font=fpath)
+
     # add text in upper right of right plot with functon name
 
     lines, labels = axs[0].get_legend_handles_labels()
@@ -198,7 +237,7 @@ def format_plot(fig,axs,s_i):
     return fig,axs
 
 
-def plot_rkhs(noise,d,max_it,b_w=False):
+def plot_rkhs(aq,noise,d,max_it,b_w=False):
     directory = 'bo/benchmark_results_rkhs'
     human_behaviours = ['expert','adversarial','trusting',0.75,0.5,0.25]
     
@@ -209,6 +248,7 @@ def plot_rkhs(noise,d,max_it,b_w=False):
         # for this problem data
         problem_data = {}
         problem_data['dim'] = d
+        problem_data['aq'] = aq
         # at a given human behaviour
         problem_data['human_behaviour'] = human_behaviours[i]
         problem_data['noise'] = noise
@@ -218,24 +258,26 @@ def plot_rkhs(noise,d,max_it,b_w=False):
             try:
                 # s_i = plot_regret(problem_data,axs,colors[i],directory,max_it,b_w,unc=True,noise=noise)
                 s_i = plot_regret(problem_data,axs,colors[i],directory,max_it,b_w,unc=False,noise=noise)
-                plt.savefig('bo/plots/rkhs/d_'+str(d)+'_noise_'+str(noise)+'.pdf')
-            except:
+                plt.savefig('bo/plots/rkhs/d_'+str(d)+'_noise_'+str(noise)+'_'+aq+'.pdf')
+            except Exception as e:
+                print(e)
                 pass
+
         if b_w == True:
             lines = ['-','--','-.',':',(0,1,10),(0, (3, 5, 1, 5, 1, 5))]
             try:
                 s_i = plot_regret(problem_data,axs,lines[i],directory,max_it,b_w,unc=False,noise=noise)
-                plt.savefig('bo/plots/rkhs/d_'+str(d)+'_noise_'+str(noise)+'.pdf')
+                plt.savefig('bo/plots/rkhs/d_'+str(d)+'_noise_'+str(noise)+'_'+aq+'.pdf')
             except:
                 pass
     fig,axs = format_plot(fig,axs,s_i)
     try:
-        plt.savefig('bo/plots/rkhs/d_'+str(d)+'_noise_'+str(noise)+'.pdf')
+        plt.savefig('bo/plots/rkhs/d_'+str(d)+'_noise_'+str(noise)+'_'+aq+'.pdf')
     except:
         os.mkdir('bo/plots')
 
 
-def plot_specific(noise,max_it,b_w):
+def plot_specific(aq,noise,max_it,b_w):
     directory = 'bo/benchmark_results_specific'
     colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
     human_behaviours = ['expert','adversarial','trusting',0.75,0.5,0.25]
@@ -259,13 +301,17 @@ def plot_specific(noise,max_it,b_w):
             # for this problem data
             problem_data = {}
             problem_data['human_behaviour'] = human_behaviours[i]
+            problem_data['aq'] = aq
             problem_data['function'] = function.name
             
             noise_scaled = noise * jnp.abs(function.f_max - function.f_opt).item()
 
             if b_w == False:
                 colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
-                s_i = plot_regret(problem_data,axs,colors[i],directory,max_it,b_w,unc=False,noise=noise_scaled)
+                try:
+                    s_i = plot_regret(problem_data,axs,colors[i],directory,max_it,b_w,unc=False,noise=noise_scaled)
+                except:
+                    pass
             if b_w == True:
                 lines = ['-','--','-.',':',(0,1,10),(0, (3, 5, 1, 5, 1, 5))]
                 try:
@@ -285,7 +331,34 @@ def plot_specific(noise,max_it,b_w):
         fig.suptitle(func_name + ': $d= $'+n+', $\epsilon \sim \mathcal{N}(0,$'+str(noise)+r'$)$',x=0.5,y=0.1)
 
         fig,axs = format_plot(fig,axs,s_i)
-        plt.savefig('bo/plots/specific/'+function.name+'_noise_'+str(noise)+'.pdf',dpi=400)
+        plt.savefig('bo/plots/specific/'+function.name+'_noise_'+str(noise)+'_'+str(aq)+'.pdf',dpi=400)
+
+def plot_bioproc():
+    directory = 'bo/bioprocess_profile'
+    colors = ['tab:red']
+    human_behaviours = ['trusting']
+    
+    functions = [BioProcess_Profile(4)]
+
+
+    for function in functions:
+        fig,axs = plt.subplots(1,2,figsize=(9,3))
+        
+        for i in range(len(human_behaviours)):
+            # for this problem data
+            problem_data = {}
+            problem_data['human_behaviour'] = human_behaviours[i]
+            problem_data['aq'] = 'LETHAM_UCB'
+            problem_data['function'] = function.name
+
+            colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
+            s_i = plot_regret(problem_data,axs,colors[i],directory,1000,b_w=False,unc=True,noise=None)
+
+        fig.suptitle('Bioprocess Control',x=0.5,y=0.1)
+
+        fig,axs = format_plot(fig,axs,s_i,type='Bioprocess')
+        plt.savefig('bo/plots/human/bioprocess.pdf',dpi=400)
+
 
 
 def plot_real(max_it,b_w):
@@ -329,12 +402,14 @@ def plot_real(max_it,b_w):
         plt.savefig('bo/plots/overall_regret_'+function+'.pdf')
 
 
-# plot_human('EI',1)
+plot_bioproc()
+
 b_w = False
-for noise in [0.0,0.025,0.05]:
-    plot_rkhs(noise,1,1000,b_w)
-    plot_rkhs(noise,2,1000,b_w)
-    plot_rkhs(noise,3,1000,b_w)
-    plot_rkhs(noise,5,1000,b_w)
-    plot_specific(noise,10000,b_w)
+
+# for aq in ['EI','UCB']:
+#     for noise in [0.0,0.05,0.1]:
+#         # plot_rkhs(aq,noise,2,1000,b_w)
+#         # plot_rkhs(aq,noise,3,1000,b_w)
+#         # plot_rkhs(aq,noise,5,1000,b_w)
+#         plot_specific(aq,noise,10000,b_w)
 #plot_real(50,b_w)

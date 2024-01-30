@@ -353,9 +353,8 @@ problem_data["sample_initial"] = 12
 problem_data["gp_ms"] = 8
 problem_data["alternatives"] = 4
 problem_data["NSGA_xtol"] = 1e-6
-problem_data["NSGA_ftol"] = 0.01
-problem_data['max_iterations'] = 60
-
+problem_data["NSGA_ftol"] = 0.005
+problem_data['max_iterations'] = 48
 
 #f = Reactor(1)
 f = BioProcess_Profile(4)
