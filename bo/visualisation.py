@@ -540,77 +540,77 @@ def bo(
 ### Augmented LHS 
             
 
-bounds = np.array([[0,1],[0,1]])
-x_expert = np.array([[1,0],[0,1],[0.5,0.5],[0.25,0.25],[0.25,0.75]])
+# bounds = np.array([[0,1],[0,1]])
+# x_expert = np.array([[1,0],[0,1],[0.5,0.5],[0.25,0.25],[0.25,0.75]])
 
-n = len(x_expert)
-m = 24
-required = m - n 
-
-
+# n = len(x_expert)
+# m = 24
+# required = m - n 
 
 
-def k(x1,x2):
-    return np.exp(-np.sum((x1-x2)**2)/0.1)
 
-def covar_mat(x):
-    n = len(x)
-    K = np.zeros((n,n))
-    for i in range(n):
-        for j in range(i,n):
-            K[i,j] = k(x[i],x[j])
-            K[j,i] = K[i,j]
-    return K
 
-def obj(x_list,x_expert):
-    x_random = np.reshape(x_list,(required,2))
-    x_aug = np.concatenate((x_random,x_expert),axis=0)
-    K = covar_mat(x_aug)
-    det = np.linalg.det(K)
-    return -det
+# def k(x1,x2):
+#     return np.exp(-np.sum((x1-x2)**2)/0.1)
 
-import scipy.optimize as opt
+# def covar_mat(x):
+#     n = len(x)
+#     K = np.zeros((n,n))
+#     for i in range(n):
+#         for j in range(i,n):
+#             K[i,j] = k(x[i],x[j])
+#             K[j,i] = K[i,j]
+#     return K
 
-x_list = np.random.uniform(size=(required*2))
+# def obj(x_list,x_expert):
+#     x_random = np.reshape(x_list,(required,2))
+#     x_aug = np.concatenate((x_random,x_expert),axis=0)
+#     K = covar_mat(x_aug)
+#     det = np.linalg.det(K)
+#     return -det
 
-print('Running Nelder-Mead')
-res = opt.minimize(obj,x_list,args=(x_expert),method='Nelder-Mead',bounds=[(0,1) for i in range(required*2)],options={'disp':True,'maxiter':10000})
-x_opt = res.x
-res = opt.minimize(obj,x_opt,args=(x_expert),method='CG',bounds=[(0,1) for i in range(required*2)],options={'disp':True,'maxiter':10000})
-x_opt = res.x
-x_opt = np.reshape(x_opt,(required,2))
-x_list = np.reshape(x_list,(required,2))
+# import scipy.optimize as opt
 
-fig,axs = plt.subplots(1,3,figsize=(11,4))
+# x_list = np.random.uniform(size=(required*2))
 
-axs[1].scatter(x_list[:,0],x_list[:,1],c='k',s=20,marker='o',label='Initial Solutions')
-axs[2].scatter(x_opt[:,0],x_opt[:,1],c='k',s=20,marker='^',label='Optimal Initial Solutions')
-for i in range(len(axs)):
-    ax = axs[i]
-    # maintain perspective 
-    ax.set_aspect('equal')
-    ax.scatter(x_expert[:,0],x_expert[:,1],c='k',s=40,marker='+',label='Expert Solutions' if i == 0 else None)
-    # draw box for bounds 
-    ax.plot([0,1],[0,0],c='k',lw=1,ls='--',alpha=0.5,label='Bounds' if i == 0 else None)
-    ax.plot([0,0],[0,1],c='k',lw=1,ls='--',alpha=0.5)
-    ax.plot([1,1],[0,1],c='k',lw=1,ls='--',alpha=0.5)
-    ax.plot([0,1],[1,1],c='k',lw=1,ls='--',alpha=0.5)
+# print('Running Nelder-Mead')
+# res = opt.minimize(obj,x_list,args=(x_expert),method='Nelder-Mead',bounds=[(0,1) for i in range(required*2)],options={'disp':True,'maxiter':10000})
+# x_opt = res.x
+# res = opt.minimize(obj,x_opt,args=(x_expert),method='CG',bounds=[(0,1) for i in range(required*2)],options={'disp':True,'maxiter':10000})
+# x_opt = res.x
+# x_opt = np.reshape(x_opt,(required,2))
+# x_list = np.reshape(x_list,(required,2))
 
-    ax.set_xlim([-0.25,1.25])
-    ax.set_ylim([-0.25,1.25])
-    ax.set_xlabel(r"$x_1$",fontsize=16)
-    ax.set_ylabel(r"$x_2$",fontsize=16)
-    ax.set_xticks([])
-    ax.set_yticks([])
+# fig,axs = plt.subplots(1,3,figsize=(11,4))
 
-lines, labels = axs[0].get_legend_handles_labels()
-lines2, labels2 = axs[1].get_legend_handles_labels()
-lines3, labels3 = axs[2].get_legend_handles_labels()
-lines = lines + lines2 + lines3
-labels = labels + labels2 + labels3
-fig.legend(lines, labels, loc='lower center', bbox_to_anchor=(0.5, 0.88), ncol=4,frameon=False,fontsize=16)
+# axs[1].scatter(x_list[:,0],x_list[:,1],c='k',s=30,marker='o',edgecolor='k',label='Initial Solutions')
+# axs[2].scatter(x_opt[:,0],x_opt[:,1],c="#D81B60",edgecolor="#D81B60",s=30,marker='o',label='Optimal Initial Solutions')
+# for i in range(len(axs)):
+#     ax = axs[i]
+#     # maintain perspective 
+#     ax.set_aspect('equal')
+#     ax.scatter(x_expert[:,0],x_expert[:,1],edgecolor="#FFC107",c="#FFC107",s=30,marker='o',label='Expert Solutions' if i == 0 else None)
+#     # draw box for bounds 
+#     ax.plot([0,1],[0,0],c='k',lw=1,ls='--',alpha=0.5,label='Bounds' if i == 0 else None)
+#     ax.plot([0,0],[0,1],c='k',lw=1,ls='--',alpha=0.5)
+#     ax.plot([1,1],[0,1],c='k',lw=1,ls='--',alpha=0.5)
+#     ax.plot([0,1],[1,1],c='k',lw=1,ls='--',alpha=0.5)
 
-fig.tight_layout()
+#     ax.set_xlim([-0.25,1.25])
+#     ax.set_ylim([-0.25,1.25])
+#     ax.set_xlabel(r"$x_1$",fontsize=16)
+#     ax.set_ylabel(r"$x_2$",fontsize=16)
+#     ax.set_xticks([])
+#     ax.set_yticks([])
 
-fig.savefig('lhs_fig.pdf')
+# lines, labels = axs[0].get_legend_handles_labels()
+# lines2, labels2 = axs[1].get_legend_handles_labels()
+# lines3, labels3 = axs[2].get_legend_handles_labels()
+# lines = lines + lines2 + lines3
+# labels = labels + labels2 + labels3
+# fig.legend(lines, labels, loc='lower center', bbox_to_anchor=(0.5, 0.88), ncol=4,frameon=False,fontsize=16)
+
+# fig.tight_layout()
+
+# fig.savefig('lhs_fig.pdf')
                 

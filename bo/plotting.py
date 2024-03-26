@@ -42,17 +42,19 @@ fpath = 'Arial'
 
 def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc,noise): 
 
+    hum_mean = problem_data['hum_mean']
     try:
         func = problem_data['function']
         func_flag = True
     except:
         func_flag = False
+        func = None
 
     files = os.listdir(directory)
     problem_data_list = []
     for i in tqdm(range(len(files))):
 
-        if func == 'bioprocess_profile':
+        if func == 'bioprocess_profile' or func == 'reactor':
 
             results = directory+'/'+files[i] + '/res.json'
             # open json
@@ -100,9 +102,9 @@ def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc,noise):
     print(df)
     label = problem_data['human_behaviour']
     file_names = df['file_name'].values
-    regret_list, obj_list, f_opt_list = [], [], []
+    regret_list, obj_list, f_opt_list, name_list = [], [], [], []
     for file in file_names:
-        if func != 'bioprocess_profile':
+        if func != 'bioprocess_profile' and func != 'reactor':
             file = directory + '/' + file.split('/')[-2]
 
         data_full = read_json(file+'/res.json')
@@ -111,31 +113,50 @@ def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc,noise):
         obj = [d['objective'] for d in data]
         f_opt_list.append(f_opt)
         obj_list.append(obj)
+        name_list.append(data_full['problem_data']['file_name'].split('/')[-2])
         problem_data = data_full['problem_data']
     init = problem_data['sample_initial']
+    if func == 'bioprocess_profile' or func == 'reactor':
+        init = 0 
+
     full_it = problem_data['max_iterations']
 
     average_regret_list = []
     regret_list = []
     for obj,i in zip(obj_list,range(len(obj_list))):
+
         if len(obj) != full_it:
             obj += [obj[-1]]*(full_it-len(obj))
 
         it = len(obj)
-        regret = [f_opt_list[i] - np.max(obj[:t]) for t in range(1,it+1)]
-        if func != 'bioprocess_profile':
-            for j in range(len(regret)):
-                if regret[j] < 0: 
-                    regret[j] = 0 
         
+        if func != 'bioprocess_profile' and func != 'reactor':
+            regret = [f_opt_list[i] - np.max(obj[:t]) for t in range(1,it+1)]
+        else:
+            regret = [np.max(obj[:t]) for t in range(1,it+1)]
+            # for j in range(len(regret)):
+            #     if regret[j] < 0: 
+            #         regret[j] = 0 
+
+        # if func == 'reactor':
+        #     for j in range(len(regret)):
+        #         regret[j] -= 20
         # if label == 'trusting' and noise < 0.001 and problem_data['dim'] == 1:
         #     if regret[-1] < 0.1:
         #         regret_list.append(regret)
         #         average_regret = [f_opt_list[i] - (1/t) * np.sum(obj[:t]) for t in range(1,it+1)]
         #         average_regret_list.append(average_regret)
         # else:
+        
         regret_list.append(regret)
-        average_regret = [f_opt_list[i] - (1/t) * np.sum(obj[:t]) for t in range(1,it+1)]
+        if func != 'bioprocess_profile' and func != 'reactor':
+            average_regret = [f_opt_list[i] - (1/t) * np.sum(obj[:t]) for t in range(1,it+1)]
+        else:
+            average_regret = [(1/t) * np.sum(obj[:t]) for t in range(1,it+1)]
+
+        # if func == 'reactor':
+        #     for j in range(len(average_regret)):
+        #         average_regret[j] -= 20
         average_regret_list.append(average_regret)
 
 
@@ -151,17 +172,24 @@ def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc,noise):
     average_regret = np.mean(np.array(average_regret_list),axis=0)[:max_it]
     average_regret_std = np.std(np.array(average_regret_list),axis=0)[:max_it]
 
-    if func == 'bioprocess_profile':
+    
 
-        # make regret positive (turn into a reward)
+    # if func == 'bioprocess_profile' or func == 'reactor':
 
-        new_regret_list = []
-        for regret in regret_list:
-            new_regret_list.append(list(-np.array(regret)))
-        regret_list = new_regret_list
+    #     # make regret positive (turn into a reward)
 
-        # same with average regret
-        average_regret = -average_regret
+    #     new_regret_list = []
+    #     for regret in regret_list:
+    #         new_regret_list.append(list(-np.array(regret)))
+    #         regret_list = new_regret_list
+
+    #     new_average_regret_list = []
+    #     for average_regret_ in average_regret_list:
+    #         new_average_regret_list.append(list(-np.array(average_regret_)))
+        
+    #     average_regret_list = new_average_regret_list
+    #     # same with average regret
+    #     average_regret = -average_regret
 
     if label.__class__ != float:
         label = label[0].upper() + label[1:]
@@ -172,12 +200,18 @@ def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc,noise):
         label = 'LLMBO'
     try:
         x = np.arange(init,len(average_regret))
-        if b_w != True:
+        if problem_data['human_behaviour'] != 'human' or hum_mean == True:
             axs[1].plot(x,average_regret[init:],c=c,lw=1.5,label=label)
             if unc == True:
                 axs[1].fill_between(x,average_regret[init:]-average_regret_std[init:],average_regret[init:]+average_regret_std[init:],alpha=0.1,color=c,lw=0)
         else:
-            axs[1].plot(x,average_regret[init:],c='k',lw=1.5,ls=c,label=label)
+            # for average_regret,i in enumerate(average_regret_list,range(len(average_regret_list))):
+            colors = ['tab:blue','tab:green','tab:orange','tab:purple','tab:brown'] 
+            for i in range(len(average_regret_list)):
+                average_regret = average_regret_list[i]
+                name = name_list[i][0].upper() + name_list[i][1:]
+                axs[1].plot(x,average_regret[init:],c=colors[i],ls='--',lw=1.5,alpha=0.75,label=name)
+
 
         ax = axs[0]
         regret_list = np.array(regret_list)
@@ -191,16 +225,22 @@ def plot_regret(problem_data,axs,c,directory,max_it,b_w,unc,noise):
 
 
         x = np.arange(init,len(mean_instantaneous_regret))
-        if b_w != True:
+
+        if problem_data['human_behaviour'] != 'human' or hum_mean == True:
             ax.plot(x,mean_instantaneous_regret[init:],c=c,lw=1.5,label=label)
+            lower = mean_instantaneous_regret[init:]-std_instantaneous_regret[init:]
+            if func != 'bioprocess_profile' or func != 'reactor':
+                lower[lower<10e-4] = 10e-4
+            upper = mean_instantaneous_regret[init:]+std_instantaneous_regret[init:]
+            if b_w != True and unc == True:
+                ax.fill_between(x,lower,upper,alpha=0.1,color=c,lw=0)
         else:
-            ax.plot(x,mean_instantaneous_regret[init:],c='k',lw=1.5,ls=c,label=label)
-        lower = mean_instantaneous_regret[init:]-std_instantaneous_regret[init:]
-        if func != 'bioprocess_profile':
-            lower[lower<10e-4] = 10e-4
-        upper = mean_instantaneous_regret[init:]+std_instantaneous_regret[init:]
-        if b_w != True and unc == True:
-            ax.fill_between(x,lower,upper,alpha=0.1,color=c,lw=0)
+            colors = ['tab:blue','tab:green','tab:orange','tab:purple','tab:brown'] 
+            for i in range(len(regret_list)):
+                regret = regret_list[i] 
+                name = name_list[i][0].upper() + name_list[i][1:]
+                ax.plot(x,regret[init:],c=colors[i],ls='--',alpha=0.75,lw=1.5,label=name)
+
     except:
         return problem_data['sample_initial']
     return problem_data['sample_initial']
@@ -251,25 +291,15 @@ def plot_rkhs(aq,noise,d,max_it,b_w=False):
         problem_data['aq'] = aq
         # at a given human behaviour
         problem_data['human_behaviour'] = human_behaviours[i]
+        problem_data['hum_mean'] = True
         problem_data['noise'] = noise
         
-        if b_w == False:
-            colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
-            try:
-                # s_i = plot_regret(problem_data,axs,colors[i],directory,max_it,b_w,unc=True,noise=noise)
-                s_i = plot_regret(problem_data,axs,colors[i],directory,max_it,b_w,unc=False,noise=noise)
-                plt.savefig('bo/plots/rkhs/d_'+str(d)+'_noise_'+str(noise)+'_'+aq+'.pdf')
-            except Exception as e:
-                print(e)
-                pass
+        colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
+        try:
+            s_i = plot_regret(problem_data,axs,colors[i],directory,max_it,b_w,unc=False,noise=noise)
+        except:
+            pass
 
-        if b_w == True:
-            lines = ['-','--','-.',':',(0,1,10),(0, (3, 5, 1, 5, 1, 5))]
-            try:
-                s_i = plot_regret(problem_data,axs,lines[i],directory,max_it,b_w,unc=False,noise=noise)
-                plt.savefig('bo/plots/rkhs/d_'+str(d)+'_noise_'+str(noise)+'_'+aq+'.pdf')
-            except:
-                pass
     fig,axs = format_plot(fig,axs,s_i)
     try:
         plt.savefig('bo/plots/rkhs/d_'+str(d)+'_noise_'+str(noise)+'_'+aq+'.pdf')
@@ -302,22 +332,16 @@ def plot_specific(aq,noise,max_it,b_w):
             problem_data = {}
             problem_data['human_behaviour'] = human_behaviours[i]
             problem_data['aq'] = aq
+            problem_data['hum_mean'] = True
             problem_data['function'] = function.name
             
             noise_scaled = noise * jnp.abs(function.f_max - function.f_opt).item()
 
-            if b_w == False:
-                colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
-                try:
-                    s_i = plot_regret(problem_data,axs,colors[i],directory,max_it,b_w,unc=False,noise=noise_scaled)
-                except:
-                    pass
-            if b_w == True:
-                lines = ['-','--','-.',':',(0,1,10),(0, (3, 5, 1, 5, 1, 5))]
-                try:
-                    s_i = plot_regret(problem_data,axs,lines[i],directory,max_it,b_w,unc=False,noise=noise_scaled)
-                except:
-                    pass
+            colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
+            try:
+                s_i = plot_regret(problem_data,axs,colors[i],directory,max_it,b_w,unc=False,noise=noise_scaled)
+            except:
+                pass
 
         fs = 12
         if function.name.split('1')[-1] == '0':
@@ -334,30 +358,77 @@ def plot_specific(aq,noise,max_it,b_w):
         plt.savefig('bo/plots/specific/'+function.name+'_noise_'+str(noise)+'_'+str(aq)+'.pdf',dpi=400)
 
 def plot_bioproc():
-    directory = 'bo/bioprocess_profile'
-    colors = ['tab:red']
-    human_behaviours = ['trusting']
+    directories = ['bo/bioprocess_profile','bo/bioprocess_profile_human']
+    colors = ['tab:red','k']
+    human_behaviours = ['trusting','human']
     
     functions = [BioProcess_Profile(4)]
 
+    
+    for hum in [True,False]:
+        for function in functions:
+            fig,axs = plt.subplots(1,2,figsize=(9,3))
+            
+            for i in range(len(human_behaviours)):
+                directory = directories[i]
+                # for this problem data
+                problem_data = {}
+                problem_data['human_behaviour'] = human_behaviours[i]
+                problem_data['aq'] = 'LETHAM_UCB'
+                problem_data['function'] = function.name
+                problem_data['hum_mean'] = hum
 
-    for function in functions:
-        fig,axs = plt.subplots(1,2,figsize=(9,3))
-        
-        for i in range(len(human_behaviours)):
-            # for this problem data
-            problem_data = {}
-            problem_data['human_behaviour'] = human_behaviours[i]
-            problem_data['aq'] = 'LETHAM_UCB'
-            problem_data['function'] = function.name
+                colors = ['tab:red','k','tab:green','tab:orange','tab:purple','tab:brown']
+                # try:
+                s_i = plot_regret(problem_data,axs,colors[i],directory,1000,b_w=False,unc=True,noise=None)
+                # except:
+                #     pass
 
-            colors = ['tab:red','tab:blue','tab:green','tab:orange','tab:purple','tab:brown']
-            s_i = plot_regret(problem_data,axs,colors[i],directory,1000,b_w=False,unc=True,noise=None)
+            fig.suptitle('Bioprocess Control',x=0.5,y=0.1)
 
-        fig.suptitle('Bioprocess Control',x=0.5,y=0.1)
+            fig,axs = format_plot(fig,axs,s_i,type='Bioprocess')
+            if hum == True:
+                plt.savefig('bo/plots/human/bioprocess_mean.pdf',dpi=400)
+            else:
+                plt.savefig('bo/plots/human/bioprocess.pdf',dpi=400)
 
-        fig,axs = format_plot(fig,axs,s_i,type='Bioprocess')
-        plt.savefig('bo/plots/human/bioprocess.pdf',dpi=400)
+def plot_reactor():
+    directories = ['bo/reactor','bo/reactor_optimisation_human']
+    colors = ['tab:red','k']
+    human_behaviours = ['trusting','human']
+    # directories = ['bo/reactor']
+    # colors = ['tab:red']
+    # human_behaviours = ['trusting']
+    
+    functions = [Reactor(4)]
+
+    
+    for hum in [True,False]:
+        for function in functions:
+            fig,axs = plt.subplots(1,2,figsize=(9,3))
+            
+            for i in range(len(human_behaviours)):
+                directory = directories[i]
+                # for this problem data
+                problem_data = {}
+                problem_data['human_behaviour'] = human_behaviours[i]
+                problem_data['aq'] = 'LETHAM_UCB'
+                problem_data['function'] = function.name
+                problem_data['hum_mean'] = hum
+
+                colors = ['tab:red','k','tab:green','tab:orange','tab:purple','tab:brown']
+                # try:
+                s_i = plot_regret(problem_data,axs,colors[i],directory,1000,b_w=False,unc=True,noise=None)
+                # except:
+                #     pass
+
+            fig.suptitle('Reactor Geometry Optimization',x=0.5,y=0.1)
+
+            fig,axs = format_plot(fig,axs,s_i,type='Reactor')
+            if hum == True:
+                plt.savefig('bo/plots/human/reactor_mean.pdf',dpi=400)
+            else:
+                plt.savefig('bo/plots/human/reactor.pdf',dpi=400)
 
 
 
@@ -401,15 +472,14 @@ def plot_real(max_it,b_w):
             pass
         plt.savefig('bo/plots/overall_regret_'+function+'.pdf')
 
-
-plot_bioproc()
+plot_reactor()
 
 b_w = False
 
 # for aq in ['EI','UCB']:
 #     for noise in [0.0,0.05,0.1]:
-#         # plot_rkhs(aq,noise,2,1000,b_w)
-#         # plot_rkhs(aq,noise,3,1000,b_w)
-#         # plot_rkhs(aq,noise,5,1000,b_w)
-#         plot_specific(aq,noise,10000,b_w)
-#plot_real(50,b_w)
+#         plot_rkhs(aq,noise,2,1000,b_w)
+#         plot_rkhs(aq,noise,3,1000,b_w)
+#         plot_rkhs(aq,noise,5,1000,b_w)
+        # plot_specific(aq,noise,10000,b_w)
+# #plot_real(50,b_w)

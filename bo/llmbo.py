@@ -118,7 +118,7 @@ def llmbo(
 
         d = len(inputs[0])
         f_best = np.max(outputs)
-        gp = build_gp_dict(*train_gp(inputs, outputs, gp_ms,its=10000,noise=problem_data['noisy']))
+        gp = build_gp_dict(*train_gp(inputs, outputs, gp_ms,its=3000,noise=problem_data['noisy']))
 
 
             
@@ -136,7 +136,7 @@ def llmbo(
                     det_outputs.append(normal.sample(seed=key))
                     key,subkey = jax.random.split(key)
                 det_outputs = np.array([det_outputs]).T
-                new_gp = build_gp_dict(*train_gp(inputs,det_outputs,int(gp_ms/2),noise=False))
+                new_gp = build_gp_dict(*train_gp(inputs,det_outputs,int(gp_ms/2),its=3000,noise=False))
                 gp_list.append(new_gp) 
                 f_best_list.append(np.max(det_outputs))
 

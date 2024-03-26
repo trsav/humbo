@@ -295,6 +295,9 @@ def humbo(
         for i in range(len(x_alternates)):
             f.plot_solution(x_alternates[i],path + '/choices/choice_'+str(i+1)+'.png',f)
 
+        # clear command line 
+        os.system('clear')
+
         create_human_prompt(f,x_names,x_alternates,aq_list,prompt_data,mean_alt,var_alt)
 
         print('Remember to check solution visualisations in '+path+'/choices/ before making a choice.')
@@ -309,6 +312,8 @@ def humbo(
         x_opt = [float(x_opt[i]) for i in range(len(x_opt))]
 
         f_eval =  f(x_opt)
+
+
         run_info = {
             "inputs": list(x_opt),
         }
@@ -316,7 +321,8 @@ def humbo(
         run_info["objective"] = f_eval + np.random.normal(0,problem_data['noise'])
         run_info["id"] = str(uuid.uuid4())
         try:
-            f.plot_result(sample,path + '/result_plots/' +run_info['id']+'.png',f)
+            f.plot_result(x_opt,path + '/result_plots/' +run_info['id']+'.png',f)
+            f.plot_result(x_opt,path + '/result_plots/most_recent.png',f)
         except:
             print('Plotting of result not implemented for this function...')
 
@@ -328,13 +334,20 @@ def humbo(
 
         data["data"].append(run_info)
 
+        fig,ax = plt.subplots(1,1,figsize=(7,4))
+        ax.plot([data['data'][i]['objective'] for i in range(len(data['data']))],c='k',lw=2)
+        ax.grid()
+        ax.set_xlabel('Iteration')
+        ax.set_ylabel('Objective Value')
+        fig.savefig(path + '/result_plots/objective_plot.png')
+
 
         save_json(data, data_path)
 
 
-name = input('Enter name and press Enter: ').lower()
+name = input('Enter name and press enter: ').lower()
 
-res_path = 'bo/'+name + '/'
+res_path = 'bo/reactor_optimisation_human/'
 
 try:
     os.mkdir(res_path)
@@ -349,15 +362,15 @@ except FileExistsError:
 
 
 problem_data = {}
-problem_data["sample_initial"] = 12
-problem_data["gp_ms"] = 8
+problem_data["sample_initial"] = 8
+problem_data["gp_ms"] = 4
 problem_data["alternatives"] = 4
-problem_data["NSGA_xtol"] = 1e-6
-problem_data["NSGA_ftol"] = 0.005
-problem_data['max_iterations'] = 48
+problem_data["NSGA_xtol"] = 1e-5
+problem_data["NSGA_ftol"] = 0.01
+problem_data['max_iterations'] = 32
 
-#f = Reactor(1)
-f = BioProcess_Profile(4)
+f = Reactor(4)
+#f = BioProcess_Profile(4)
 
 problem_data['x_names'] = f.x_names
 problem_data['UTC'] = str(datetime.datetime.now())
@@ -369,9 +382,9 @@ problem_data['dim'] = f.dim
 aq = 'LETHAM_UCB'
 problem_data["noisy"] = True
 noise_std = 0.025
-problem_data['noise'] = noise_std * f.y_range
-problem_data['max_iterations'] = problem_data['max_iterations'] * 2
-problem_data['letham_gps'] = 8
+problem_data['noise'] = 0.1 * 0.04
+problem_data['letham_gps'] = 4
+problem_data['human_behaviour'] = 'human'
 
 problem_data['acquisition_function'] = aq
 problem_data['time_created'] = str(datetime.datetime.now())
@@ -381,7 +394,7 @@ problem_data['time_created'] = str(datetime.datetime.now())
 # problem_data['llm_location'] = "llama.cpp/models/zephyr-7b-alpha.Q4_K_M.gguf"
 
 problem_data['include_previous_justification'] = False
-file = f.name 
+file =  name
 path = res_path + file + "/"
 problem_data['file_name'] = path
 

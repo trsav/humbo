@@ -103,7 +103,7 @@ class Reactor(GeneralObjective):
 
     # create a method which produces a plot of a given solution (x)
     @staticmethod
-    def plot_solution(x,path_name):
+    def plot_solution(x,path_name,self):
 
         a, f, re, pitch, coil_rad = x
         v = (re * 9.9 * 10**-4) / (990 * 0.005)
@@ -156,6 +156,66 @@ class Reactor(GeneralObjective):
         ax.plot(x,z,lw=3,alpha=0.8,color='black')
         ax.plot(x,z,lw=20,alpha=0.3,color='black')
         fig.tight_layout()
+        # fig.subplots_adjust(wspace=0.01,top=0.9,bottom=0.3)
+        # fig.show()
+        fig.savefig(path_name)
+    
+    @staticmethod
+    def plot_result(x,path_name,self):
+
+        a, f, re, pitch, coil_rad = x
+        v = (re * 9.9 * 10**-4) / (990 * 0.005)
+
+        fig = plt.figure(figsize=(9, 3))
+        gs = gridspec.GridSpec(1, 2, width_ratios=[1, 1.5]) 
+        ax = fig.add_subplot(gs[0])
+        x = np.linspace(0, 1, 300)
+        y = np.sin(2 * np.pi * f * x) * a + v
+        ax.plot(x, y,color='black',lw=3)
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel('Inlet Velocity (m/s)')
+        ax.set_xlim([0,1])
+        ax.set_ylim([-0.01,0.02])
+        ax.set_title('Operating Conditions')
+        # ax.spines['right'].set_visible(False)
+        # ax.spines['top'].set_visible(False)
+        
+        n = 100
+        l = 0.0875
+        rot = l/(2 * np.pi * coil_rad)
+        h = rot * pitch 
+
+        rho = np.linspace(0, 2 * np.pi * rot, n)    
+        z = np.linspace(0, h, n)
+        theta = np.array([coil_rad for i in range(n)])
+
+        x = theta * np.cos(rho)
+        y = theta * np.sin(rho)
+        z = z
+        ax.grid(alpha=0.5)
+
+        ax = fig.add_subplot(gs[1])
+        ax.set_aspect('equal')
+        ax.set_xlim([-0.02,0.02])
+        ax.set_ylim([0,0.02])
+
+        #turn off everything that isn\t needed like ticks etc...
+        # ax.set_yticks([])
+        ax.set_ylabel('h')
+        ax.set_xlabel('x')
+        
+        ax.set_yticks([0,0.005,0.01,0.015,0.02])
+        ax.set_xticks([0.02,0.01,0.0,-0.01,-0.02])
+        ax.grid(alpha=0.5)
+
+        # remove grey background 
+        ax.set_title('Reactor Geometry')
+
+        ax.plot(x,z,lw=3,alpha=0.8,color='black')
+        ax.plot(x,z,lw=20,alpha=0.3,color='black')
+        fig.tight_layout()
+        # eval func for title
+        fig.suptitle('Objective: ',self.__call__(x))
         # fig.subplots_adjust(wspace=0.01,top=0.9,bottom=0.3)
         # fig.show()
         fig.savefig(path_name)
@@ -217,9 +277,14 @@ class BioProcess:
             ax[i].set_ylim(lims[i])
 
         plt.tight_layout()
-        plt.show()
 
+        print('Plotting result at ',path_name)
         plt.savefig(path_name)
+        # save but with name 'most_recent.png'
+        path_ = path_name.split('/')[:-1]
+        path = '/'.join(path_)
+        plt.savefig(os.path.join(path, 'most_recent.png'))
+        plt.close()
 
 # f = BioProcess()
 
