@@ -8,6 +8,7 @@ sys.path.insert(1, os.path.join(sys.path[0], ".."))
 from function_creation.function import *
 import matplotlib.pyplot as plt
 from llmbo import llmbo
+from llmbo_evolutionary import llmbo_evolutionary
 from utils import *
 import uuid
 from function_creation.create_problem import create_problem
@@ -20,7 +21,7 @@ import argparse
 
 aqs = {'logEI':logEI,'UCB':UCB,'NOISY_EI':noisy_EI,'LETHAM_EI':LETHAM_EI,'EI':EI,'LETHAM_UCB':UCB}
 
-def specific_functions(array_index,b_index,noise_std):
+def specific_functions(array_index,b_index,noise_std,evolutionary=False):
 
     # first create the path 
     res_path = 'bo/benchmark_results_specific/'
@@ -112,15 +113,22 @@ def specific_functions(array_index,b_index,noise_std):
     problem_data['function'] = f.name
     problem_data['human_behaviour'] = human_behaviours[b_index]
 
-    llmbo(
-        f,
-        aqs[problem_data['acquisition_function']],
-        problem_data
-    )
+    if evolutionary:
+        llmbo_evolutionary(
+            f,
+            aqs[problem_data['acquisition_function']],
+            problem_data
+        )
+    else:
+        llmbo(
+            f,
+            aqs[problem_data['acquisition_function']],
+            problem_data
+        )
 
 #specific_functions()
 
-def rkhs_functions(array_index, b_index,noise_std):
+def rkhs_functions(array_index, b_index,noise_std,evolutionary=False):
     res_path = 'bo/benchmark_results_rkhs/'
     try:
         os.mkdir(res_path)
@@ -178,15 +186,22 @@ def rkhs_functions(array_index, b_index,noise_std):
         problem_data['plot'] = False
         problem_data['function'] = file
 
-        llmbo(
-            f,
-            aqs[aq],
-            problem_data
-        )
+        if evolutionary:
+            llmbo_evolutionary(
+                f,
+                aqs[aq],
+                problem_data
+            )
+        else:
+            llmbo(
+                f,
+                aqs[aq],
+                problem_data
+            )
 
 # rkhs_functions()
 
-def real_functions(array_index,b_index,noise_std):
+def real_functions(array_index,b_index,noise_std,evolutionary=False):
     res_path = 'bo/benchmark_results_real/'
     try:
         os.mkdir(res_path)
@@ -261,11 +276,18 @@ def real_functions(array_index,b_index,noise_std):
     path = res_path + file + "/"
     problem_data['file_name'] = path
         
-    llmbo(
-        f,
-        aqs[aq],
-        problem_data
-    )
+    if evolutionary:
+        llmbo_evolutionary(
+            f,
+            aqs[aq],
+            problem_data
+        )
+    else:
+        llmbo(
+            f,
+            aqs[aq],
+            problem_data
+        )
 
     # problem_data['include_previous_justification'] = True
     # file = f.name + '_' + str(uuid.uuid4())
@@ -287,22 +309,33 @@ if __name__ == "__main__":
     parser.add_argument('--noise', type=float, required=True, help="Noise std.")
     parser.add_argument('--array_index', type=str, required=False, help="First index.")
     parser.add_argument('--behaviour_index', type=str, required=False, help="Behaviour index.")
+    parser.add_argument('--evolutionary', type=bool, required=False, help="Evolutionary.")
 
     try:
         args = parser.parse_args()
     except:
         # rkhs_functions(4,4,0.05)
         # real_functions(2,0,0.1)
-        specific_functions(0,0,0.1)
+        specific_functions(0,0,0.1,evolutionary=True)
     
     a_i = int(args.array_index)
     b_i = int(args.behaviour_index)
     n_i = float(args.noise)
+    evol = args.evolutionary
 
     if args.function == "real_functions":
-        real_functions(a_i,b_i,n_i)
+        if evol:
+            real_functions(a_i,b_i,n_i,evolutionary=True)
+        else:
+            real_functions(a_i,b_i,n_i)
     elif args.function == "rkhs_functions":
-        rkhs_functions(a_i,b_i,n_i)
+        if evol:
+            rkhs_functions(a_i,b_i,n_i,evolutionary=True)
+        else:
+            rkhs_functions(a_i,b_i,n_i)
     elif args.function == "specific_functions":
-        specific_functions(a_i,b_i,n_i)
+        if evol:
+            specific_functions(a_i,b_i,n_i,evolutionary=True)
+        else:
+            specific_functions(a_i,b_i,n_i)
 

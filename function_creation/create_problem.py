@@ -6,7 +6,11 @@ import pickle
 from gpjax.kernels import Matern52
 import optax as ox
 import matplotlib.pyplot as plt
+from matplotlib import rc
 
+rc('font',**{'family':'sans-serif','sans-serif':['Arial']})
+rc('text', usetex=True)
+fpath = 'Arial'
 
 def create_problem(key, l, d):
     n = 300
@@ -88,13 +92,13 @@ def create_problem(key, l, d):
 
 
 # from function import Function 
-# fig,axs = plt.subplots(2, 2, figsize=(6, 4.5),constrained_layout=True)
+# fig,axs = plt.subplots(2, 2, figsize=(6, 6),constrained_layout=True)
 # d = 2 
 # key = random.PRNGKey(0)
 # for ax,k in zip(axs.ravel(),range(4)):
 #     key,subkey = random.split(key)
 #     f = Function(create_problem(key,0.04,d))
-#     n = 40 
+#     n = 40
 #     x1 = jnp.linspace(0,1,n)
 #     x2 = jnp.linspace(0,1,n)
 #     X1,X2 = jnp.meshgrid(x1,x2)
@@ -103,10 +107,12 @@ def create_problem(key, l, d):
 #     for i in tqdm(range(n)):
 #         for j in range(n):
 #             Y = Y.at[i,j].set(f(jnp.array([x1[i],x2[j]])))
-#     ax.contourf(X1,X2,Y,cmap='Spectral',levels=16)
+#     ax.contourf(X1,X2,Y,cmap='Spectral',levels=32)
 #     ax.set_xlabel('$x_1$')
 #     ax.set_ylabel('$x_2$')
 #     ax.spines['right'].set_visible(False)
 #     ax.spines['top'].set_visible(False)
-# plt.tight_layout()
+#     # set equal aspect ratio 
+#     ax.set_aspect('equal', adjustable='box')
+# plt.subplots_adjust(hspace=0.1)
 # plt.savefig('function_creation/example_functions_2D.pdf')
